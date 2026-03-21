@@ -20,9 +20,13 @@ from backend.src.utils.security import (
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
-# Create uploads directory for CVs
-CV_UPLOAD_DIR = Path("uploads/cvs")
-CV_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+# Create uploads directory for CVs (fallback to /tmp for serverless)
+try:
+    CV_UPLOAD_DIR = Path("uploads/cvs")
+    CV_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    CV_UPLOAD_DIR = Path("/tmp/uploads/cvs")
+    CV_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.post("/apply_manual")

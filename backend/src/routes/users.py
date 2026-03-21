@@ -16,9 +16,13 @@ from backend.src.utils.security import (
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-# Create uploads directory if it doesn't exist
-UPLOAD_DIR = Path("uploads/profiles")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+# Create uploads directory if it doesn't exist (fallback to /tmp for serverless)
+try:
+    UPLOAD_DIR = Path("uploads/profiles")
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    UPLOAD_DIR = Path("/tmp/uploads/profiles")
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.post("/add_user")
