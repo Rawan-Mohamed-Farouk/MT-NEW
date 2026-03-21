@@ -1,0 +1,68 @@
+%% RAG System Data Flow Diagram
+flowchart LR
+    subgraph "Input"
+        UserMsg[User Message]
+        UserID[User ID Optional]
+    end
+    
+    subgraph "Data Sources"
+        UserDB[(User Database<br/>Disabilities, Skills)]
+        JobDB[(Job Database<br/>50 Jobs)]
+        AppDB[(Application History<br/>Last 10)]
+    end
+    
+    subgraph "Processing"
+        Extract[Extract Keywords]
+        Score[Calculate Relevance]
+        Filter[Filter & Sort]
+        Format[Format Jobs]
+    end
+    
+    subgraph "Context"
+        UserCtx[User Context:<br/>- Disabilities<br/>- Skills<br/>- Location<br/>- Applied Jobs]
+        JobCtx[Job Context:<br/>- Top 5 Jobs<br/>- Formatted Info<br/>- Match Indicators]
+        SystemCtx[System Prompt:<br/>- Instructions<br/>- Format Rules]
+    end
+    
+    subgraph "Generation"
+        Prompt[Full Prompt]
+        Groq[Groq API]
+        Response[AI Response]
+    end
+    
+    subgraph "Output"
+        Processed[Processed Response:<br/>- No Emojis<br/>- Max 100 Words<br/>- Bullet Points]
+        UserOut[User Sees Response]
+    end
+    
+    UserMsg --> Extract
+    UserID --> UserDB
+    UserID --> AppDB
+    
+    UserDB --> UserCtx
+    AppDB --> UserCtx
+    JobDB --> Extract
+    
+    Extract --> Score
+    Score --> Filter
+    Filter --> Format
+    Format --> JobCtx
+    
+    UserCtx --> Prompt
+    JobCtx --> Prompt
+    SystemCtx --> Prompt
+    UserMsg --> Prompt
+    
+    Prompt --> Groq
+    Groq --> Response
+    Response --> Processed
+    Processed --> UserOut
+    
+    style UserMsg fill:#E6F3FF
+    style UserDB fill:#CCFFCC
+    style JobDB fill:#CCFFCC
+    style AppDB fill:#CCFFCC
+    style Groq fill:#CCE6FF
+    style Processed fill:#FFE6CC
+    style UserOut fill:#90EE90
+

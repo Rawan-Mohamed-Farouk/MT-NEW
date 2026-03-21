@@ -1,0 +1,163 @@
+@startuml ERD
+!define TABLE(name,desc) class name as "desc" << (T,#FFAAAA) >>
+!define ENTITY(name,desc) class name as "desc" << (E,#AAFFAA) >>
+
+ENTITY(User, "User") {
+  + id : INT [PK]
+  + name : VARCHAR(100) [NOT NULL]
+  + email : VARCHAR(255) [UNIQUE, NOT NULL, INDEX]
+  + password : VARCHAR(255)
+  + user_type : VARCHAR(20) [DEFAULT 'user']
+  + photo : VARCHAR(500)
+  + phone : VARCHAR(50)
+  + age : INT
+  + gender : VARCHAR(20)
+  + location : VARCHAR(255)
+  + experience_level : VARCHAR(50)
+  + preferred_job_type : VARCHAR(50)
+  + created_at : DATETIME
+}
+
+ENTITY(Disability, "Disability") {
+  + id : INT [PK]
+  + name : VARCHAR(255) [UNIQUE, NOT NULL]
+  + description : TEXT
+  + category : VARCHAR(100)
+  + icon : VARCHAR(100)
+  + severity : VARCHAR(50)
+}
+
+ENTITY(Skill, "Skill") {
+  + id : INT [PK]
+  + name : VARCHAR(255) [UNIQUE, NOT NULL]
+}
+
+ENTITY(Job, "Job") {
+  + id : INT [PK]
+  + title : VARCHAR(255) [NOT NULL]
+  + description : TEXT
+  + employment_type : VARCHAR(50)
+  + remote_type : VARCHAR(50)
+  + company_id : INT [FK]
+  + location_id : INT [FK]
+  + created_at : DATETIME
+}
+
+ENTITY(Company, "Company") {
+  + id : INT [PK]
+  + name : VARCHAR(255) [NOT NULL]
+  + description : TEXT
+  + website : VARCHAR(500)
+  + logo : VARCHAR(500)
+}
+
+ENTITY(Location, "Location") {
+  + id : INT [PK]
+  + city : VARCHAR(100)
+  + state : VARCHAR(100)
+  + country : VARCHAR(100)
+  + address : VARCHAR(500)
+}
+
+ENTITY(JobApplication, "Job Application") {
+  + id : INT [PK]
+  + job_id : INT [FK, NOT NULL]
+  + user_id : INT [FK, NOT NULL]
+  + reviewer_id : INT [FK]
+  + cover_letter : TEXT
+  + cv_path : VARCHAR(500)
+  + cv_file_path : VARCHAR(500)
+  + cv_extracted_info : TEXT [JSON]
+  + manual_info : TEXT
+  + status : VARCHAR(50) [DEFAULT 'pending']
+  + admin_notes : TEXT
+  + applied_at : DATETIME
+  + reviewed_at : DATETIME
+}
+
+ENTITY(JobRequirement, "Job Requirement") {
+  + id : INT [PK]
+  + job_id : INT [FK, NOT NULL]
+  + requirement : VARCHAR(500) [NOT NULL]
+}
+
+ENTITY(AssistiveTool, "Assistive Tool") {
+  + id : INT [PK]
+  + name : VARCHAR(255) [NOT NULL]
+  + description : TEXT
+  + category : VARCHAR(100)
+  + tool_type : VARCHAR(100)
+  + platform : VARCHAR(100)
+  + cost : VARCHAR(50)
+  + website_url : VARCHAR(500)
+  + icon : VARCHAR(100)
+  + features : TEXT
+}
+
+ENTITY(ConversationLog, "Conversation Log") {
+  + id : INT [PK]
+  + user_id : INT [FK]
+  + message : TEXT [NOT NULL]
+  + response : TEXT
+  + created_at : DATETIME
+}
+
+ENTITY(ActivityLog, "Activity Log") {
+  + id : INT [PK]
+  + user_id : INT [FK]
+  + action : VARCHAR(255) [NOT NULL]
+  + detail : TEXT
+  + created_at : DATETIME
+}
+
+ENTITY(SecurityLog, "Security Log") {
+  + id : INT [PK]
+  + user_id : INT [FK]
+  + ip_address : VARCHAR(45) [NOT NULL]
+  + action : VARCHAR(255) [NOT NULL]
+  + severity : VARCHAR(20) [DEFAULT 'info']
+  + threat_type : VARCHAR(100)
+  + details : TEXT
+  + detected_by : VARCHAR(50) [DEFAULT 'system']
+  + blocked : BOOLEAN [DEFAULT FALSE]
+  + created_at : DATETIME
+}
+
+TABLE(user_disabilities, "User Disabilities") {
+  + user_id : INT [PK, FK]
+  + disability_id : INT [PK, FK]
+}
+
+TABLE(user_skills, "User Skills") {
+  + user_id : INT [PK, FK]
+  + skill_id : INT [PK, FK]
+}
+
+TABLE(job_disability_support, "Job Disability Support") {
+  + job_id : INT [PK, FK]
+  + disability_id : INT [PK, FK]
+}
+
+TABLE(disability_tools, "Disability Tools") {
+  + disability_id : INT [PK, FK]
+  + tool_id : INT [PK, FK]
+}
+
+' Relationships
+User ||--o{ JobApplication : "applies"
+User ||--o{ JobApplication : "reviews"
+Job ||--o{ JobApplication : "receives"
+Job ||--o{ JobRequirement : "has"
+Job }o--|| Company : "belongs to"
+Job }o--|| Location : "located at"
+
+User }o--o{ Disability : "has"
+User }o--o{ Skill : "has"
+Job }o--o{ Disability : "supports"
+Disability }o--o{ AssistiveTool : "uses"
+
+User ||--o{ ConversationLog : "creates"
+User ||--o{ ActivityLog : "generates"
+User ||--o{ SecurityLog : "triggers"
+
+@enduml

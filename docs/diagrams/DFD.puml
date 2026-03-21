@@ -1,0 +1,54 @@
+@startuml DFD_Level0
+actor "Job Seeker" as User
+actor "Administrator" as Admin
+database "Job Data" as Jobs
+database "Assistive Tools" as Tools
+
+rectangle "EmpowerWork System" {
+}
+
+User --> "EmpowerWork System" : Job search requests
+User --> "EmpowerWork System" : Application submissions
+Admin --> "EmpowerWork System" : Management operations
+"EmpowerWork System" --> Jobs : Job postings
+"EmpowerWork System" --> Tools : Tool data
+@enduml
+
+@startuml DFD_Level1
+actor User
+rectangle "Application Layer" {
+  component "Auth Process" as Auth
+  component "Job Search" as Search
+  component "Profile Manager" as Profile
+  component "Chatbot Engine" as Chat
+  component "Application Manager" as AppMgr
+}
+
+rectangle "Data Processing Layer" {
+  component "Business Logic" as Logic
+  component "AI Service" as AI
+  component "Data Validation" as Validation
+}
+
+database "Database (MySQL)" as DB
+storage "File System" as FS
+
+User --> Auth
+User --> Search
+User --> Profile
+User --> Chat
+User --> AppMgr
+
+Auth --> Validation
+Search --> Logic
+Profile --> Validation
+Chat --> AI
+Chat --> Logic
+AppMgr --> Validation
+
+Validation --> Logic
+Logic --> DB
+Logic --> FS
+AI --> Logic
+@enduml
+

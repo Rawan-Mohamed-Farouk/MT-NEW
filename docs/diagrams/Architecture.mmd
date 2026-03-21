@@ -1,0 +1,209 @@
+```mermaid
+flowchart TB
+    %% ============================================
+    %% PRESENTATION LAYER
+    %% ============================================
+    subgraph Presentation["Presentation Layer"]
+        direction TB
+        subgraph Client["Client Tier"]
+            Browser(("Web Browser<br/>(Chrome, Firefox, Safari, Edge)"))
+        end
+        
+        subgraph Frontend["Frontend Application (React + Vite)"]
+            direction LR
+            Pages["Page Components<br/>Home • Jobs • Search • Profile<br/>Chat • Admin Dashboard"]
+            Components["Reusable Components<br/>JobCard • ApplicationModal<br/>ChatBox • UserForm • Table"]
+            AuthContext{"Authentication Context<br/>JWT Token Management<br/>Role-Based Route Guards"}
+            APIClient[("API Client Layer<br/>Axios HTTP Client<br/>Request/Response Interceptors<br/>Error Handling")]
+            
+            Pages --> Components
+            Pages --> AuthContext
+            Pages --> APIClient
+            Components --> APIClient
+            APIClient --> AuthContext
+        end
+        
+        Browser --> Frontend
+    end
+
+    %% ============================================
+    %% APPLICATION LAYER
+    %% ============================================
+    subgraph Application["Application Layer (FastAPI)"]
+        direction TB
+        
+        subgraph APIGateway["API Gateway & Middleware"]
+            FastAPI{{"FastAPI Application<br/>Dependency Injection<br/>Request Routing"}}
+            CORS["CORS Middleware<br/>Cross-Origin Resource Sharing"]
+            SecurityMW["Security Middleware<br/>Threat Detection<br/>Rate Limiting"]
+            
+            FastAPI --> CORS
+            FastAPI --> SecurityMW
+        end
+        
+        subgraph RouteHandlers["Route Handlers (REST API)"]
+            direction LR
+            UserRoutes["User Routes<br/>/users/*<br/>Registration • Login • Profile"]
+            JobRoutes["Job Routes<br/>/jobs/*<br/>CRUD • Search • Filtering"]
+            AppRoutes["Application Routes<br/>/applications/*<br/>Submit • Review • Status"]
+            ChatRoutes["Chat Routes<br/>/chat/*<br/>RAG Chatbot Interface"]
+            AdminRoutes["Admin Routes<br/>/companies/*<br/>/disabilities/*<br/>/tools/*"]
+            
+            UserRoutes --> FastAPI
+            JobRoutes --> FastAPI
+            AppRoutes --> FastAPI
+            ChatRoutes --> FastAPI
+            AdminRoutes --> FastAPI
+        end
+        
+        subgraph BusinessLogic["Business Logic Layer"]
+            direction TB
+            UserService{{"User Service<br/>Profile Management<br/>Authentication Logic"}}
+            JobService{{"Job Service<br/>Job Matching<br/>Intelligent Search"}}
+            AppService{{"Application Service<br/>CV Processing<br/>Status Management"}}
+            ChatService{{"Chat Service<br/>Context Building<br/>Response Formatting"}}
+            
+            UserRoutes --> UserService
+            JobRoutes --> JobService
+            AppRoutes --> AppService
+            ChatRoutes --> ChatService
+        end
+        
+        subgraph UtilityLayer["Utility Layer"]
+            direction LR
+            SecurityUtils{"Security Utilities<br/>Input Sanitization<br/>Password Hashing<br/>XSS Prevention"}
+            SearchUtils{"Search Intelligence<br/>Fuzzy Matching<br/>Synonym Detection<br/>Relevance Scoring"}
+            PDFUtils{"PDF Processing<br/>Text Extraction<br/>CV Parsing<br/>Data Structuring"}
+            FileUtils{"File Management<br/>Upload Handling<br/>Path Generation<br/>Storage Operations"}
+            
+            UserService --> SecurityUtils
+            JobService --> SearchUtils
+            AppService --> PDFUtils
+            AppService --> FileUtils
+            UserService --> FileUtils
+        end
+        
+        subgraph RAGLayer["RAG Intelligence Layer"]
+            direction TB
+            RAGChat{{"RAG Chat Engine<br/>Context Building<br/>Prompt Construction"}}
+            Embedder{"Embedding Service<br/>OpenAI Embeddings<br/>Text-to-Vector Conversion"}
+            Retriever{"Vector Retriever<br/>ChromaDB Integration<br/>Similarity Search"}
+            
+            ChatService --> RAGChat
+            RAGChat --> Embedder
+            RAGChat --> Retriever
+        end
+        
+        APIGateway --> RouteHandlers
+        RouteHandlers --> BusinessLogic
+        BusinessLogic --> UtilityLayer
+        BusinessLogic --> RAGLayer
+    end
+
+    %% ============================================
+    %% DATA LAYER
+    %% ============================================
+    subgraph DataLayer["Data Layer"]
+        direction TB
+        
+        subgraph Database["Relational Database (MySQL/MariaDB)"]
+            direction LR
+            UserTables[("User Tables<br/>users • user_disabilities<br/>user_skills")]
+            JobTables[("Job Tables<br/>jobs • job_requirements<br/>job_disability_support")]
+            AppTables[("Application Tables<br/>job_applications<br/>CV extracted data")]
+            RefTables[("Reference Tables<br/>companies • locations<br/>skills • disabilities")]
+            LogTables[("Logging Tables<br/>security_logs • activity_logs<br/>conversation_logs")]
+        end
+        
+        subgraph ORM["Object-Relational Mapping"]
+            SQLAlchemy[("SQLAlchemy ORM<br/>Model Definitions<br/>Query Building<br/>Eager Loading")]
+            
+            SQLAlchemy --> UserTables
+            SQLAlchemy --> JobTables
+            SQLAlchemy --> AppTables
+            SQLAlchemy --> RefTables
+            SQLAlchemy --> LogTables
+        end
+        
+        subgraph FileStorage["File Storage System"]
+            ProfileStorage[("Profile Images<br/>uploads/profiles/")]
+            CVStorage[("CV Documents<br/>uploads/cvs/")]
+        end
+        
+        subgraph VectorDB["Vector Database (Optional)"]
+            ChromaDB[("ChromaDB<br/>Job Embeddings<br/>Semantic Search")]
+        end
+    end
+
+    %% ============================================
+    %% EXTERNAL SERVICES
+    %% ============================================
+    subgraph External["External Services"]
+        direction LR
+        GroqAPI{{"Groq API<br/>Large Language Model<br/>GPT-OSS-120B<br/>Response Generation"}}
+        OpenAIAPI{{"OpenAI API<br/>Text Embeddings<br/>text-embedding-3-small<br/>Semantic Vectors"}}
+    end
+
+    %% ============================================
+    %% ADMINISTRATION LAYER
+    %% ============================================
+    subgraph Admin["Administration Layer"]
+        direction TB
+        Migrations{"Database Migrations<br/>Schema Updates<br/>Data Transformations"}
+        Seeds{"Data Seeding<br/>Initial Data Population<br/>Test Data Generation"}
+        AdminScripts{"Admin Scripts<br/>User Creation<br/>System Configuration"}
+        
+        Migrations --> Database
+        Seeds --> Database
+        AdminScripts --> Database
+    end
+
+    %% ============================================
+    %% VERSION CONTROL & DEVELOPMENT
+    %% ============================================
+    subgraph VersionControl["Version Control & Development"]
+        direction TB
+        GitRepo[("Git Repository<br/>Source Code Management<br/>Version Control<br/>Branch Management")]
+        GitWorkflow{"Git Workflow<br/>Feature Branches<br/>Pull Requests<br/>Code Review"}
+        CI_CD{"CI/CD Pipeline<br/>Automated Testing<br/>Build & Deploy"}
+        
+        GitRepo --> GitWorkflow
+        GitWorkflow --> CI_CD
+        CI_CD --> Frontend
+        CI_CD --> Application
+    end
+
+    %% ============================================
+    %% CONNECTIONS
+    %% ============================================
+    Frontend -->|HTTPS/REST API<br/>JSON Payloads<br/>JWT Authentication| APIGateway
+    
+    BusinessLogic -->|ORM Queries<br/>Transactions<br/>Eager Loading| ORM
+    UtilityLayer -->|File Operations<br/>Read/Write| FileStorage
+    RAGLayer -->|Vector Queries<br/>Similarity Search| VectorDB
+    
+    RAGChat -->|API Calls<br/>Prompt Engineering| GroqAPI
+    Embedder -->|Embedding Requests<br/>Text Vectors| OpenAIAPI
+    Retriever -->|Vector Storage<br/>Query Operations| ChromaDB
+    
+    SecurityUtils -->|Security Events<br/>Threat Logging| LogTables
+    UserService -->|Activity Tracking| LogTables
+    ChatService -->|Conversation History| LogTables
+
+    %% ============================================
+    %% STYLING
+    %% ============================================
+    classDef presentation fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef application fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef data fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef external fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef admin fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef versioncontrol fill:#f0f0f0,stroke:#333333,stroke-width:2px
+    
+    class Presentation,Client,Frontend presentation
+    class Application,APIGateway,RouteHandlers,BusinessLogic,UtilityLayer,RAGLayer application
+    class DataLayer,Database,ORM,FileStorage,VectorDB data
+    class External,GroqAPI,OpenAIAPI external
+    class Admin,Migrations,Seeds,AdminScripts admin
+    class VersionControl,GitRepo,GitWorkflow,CI_CD versioncontrol
+```

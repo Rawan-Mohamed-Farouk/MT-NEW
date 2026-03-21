@@ -1,0 +1,53 @@
+@startuml ApplicationState
+[*] --> Pending : User submits application
+
+state Pending {
+  [*] --> Waiting : Application created
+}
+
+state "Under Review" as Review {
+  [*] --> Examining : Admin opens application
+}
+
+state Approved {
+  [*] --> Completed : Application accepted
+}
+
+state Rejected {
+  [*] --> Declined : Application declined
+}
+
+Pending --> Review : Admin starts review
+Review --> Approved : Admin approves
+Review --> Rejected : Admin rejects
+Approved --> [*]
+Rejected --> [*]
+@enduml
+
+@startuml UserSessionState
+[*] --> LoggedOut
+
+state LoggedOut {
+  [*] --> Idle
+}
+
+state Authenticating {
+  [*] --> Validating
+}
+
+state "Logged In (User)" as UserLoggedIn {
+  [*] --> Active
+}
+
+state "Logged In (Admin)" as AdminLoggedIn {
+  [*] --> Active
+}
+
+LoggedOut --> Authenticating : User logs in
+Authenticating --> UserLoggedIn : Valid user credentials
+Authenticating --> AdminLoggedIn : Valid admin credentials
+Authenticating --> LoggedOut : Invalid credentials
+UserLoggedIn --> LoggedOut : User logs out
+AdminLoggedIn --> LoggedOut : Admin logs out
+@enduml
+

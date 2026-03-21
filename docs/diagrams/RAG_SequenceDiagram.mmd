@@ -1,0 +1,71 @@
+%% RAG System Sequence Diagram
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant ChatRoute as Chat Route Handler
+    participant Security
+    participant DB as Database
+    participant UserRetriever as User Profile Retriever
+    participant JobRetriever as Job Retriever
+    participant JobFilter as Job Filtering Engine
+    participant ContextBuilder as Context Builder
+    participant RAGChat as RAG Chat Module
+    participant GroqAPI as Groq API
+    participant PostProcessor as Post Processor
+    
+    User->>Frontend: Type message in chat
+    Frontend->>ChatRoute: POST /chat/?user_id=X&message=Y
+    ChatRoute->>Security: Rate limit check (20/60s)
+    Security->>ChatRoute: Rate limit OK
+    
+    ChatRoute->>Security: Input validation
+    Security->>ChatRoute: Input valid
+    
+    alt User ID Provided
+        ChatRoute->>UserRetriever: Load user profile
+        UserRetriever->>DB: Query user with eager loading<br/>(disabilities, skills)
+        DB->>UserRetriever: Return user data
+        
+        UserRetriever->>DB: Query applications (last 10)
+        DB->>UserRetriever: Return applications
+        
+        UserRetriever->>ContextBuilder: Build user profile dict:<br/>- Disabilities<br/>- Skills<br/>- Location<br/>- Applied Jobs
+    end
+    
+    ChatRoute->>JobRetriever: Load jobs (limit 50)
+    JobRetriever->>DB: Query jobs with eager loading<br/>(company, location, requirements, disabilities)
+    DB->>JobRetriever: Return jobs
+    
+    JobRetriever->>JobFilter: Transform to job data list
+    
+    ChatRoute->>JobFilter: Filter jobs for chat<br/>(message, user_profile)
+    
+    JobFilter->>JobFilter: Extract keywords from message
+    JobFilter->>JobFilter: Calculate relevance scores:<br/>- Disability match: +10<br/>- Title match: +2<br/>- Description match: +1<br/>- Skill match: +2
+    
+    JobFilter->>JobFilter: Exclude applied jobs<br/>(unless asked about)
+    JobFilter->>JobFilter: Sort by relevance
+    JobFilter->>JobFilter: Select top 5 jobs
+    
+    JobFilter->>ContextBuilder: Return filtered jobs
+    
+    ContextBuilder->>ContextBuilder: Format jobs for context:<br/>- Mark PERFECT MATCH<br/>- Mark Already Applied<br/>- Format job info
+    
+    ContextBuilder->>RAGChat: Build context:<br/>- User profile context<br/>- Job listings context<br/>- System prompt
+    
+    RAGChat->>RAGChat: Construct full prompt:<br/>System Prompt + User Context + Jobs + Message
+    
+    RAGChat->>GroqAPI: Call chat.completions.create<br/>(model, temperature=0.7, max_tokens=500)
+    GroqAPI->>RAGChat: Return AI response
+    
+    RAGChat->>PostProcessor: Raw AI response
+    
+    PostProcessor->>PostProcessor: Remove emojis (regex)
+    PostProcessor->>PostProcessor: Limit to 100 words
+    PostProcessor->>PostProcessor: Validate format<br/>(bullet points, concise)
+    
+    PostProcessor->>RAGChat: Processed response
+    RAGChat->>ChatRoute: Final response
+    ChatRoute->>Frontend: Return {"answer": response}
+    Frontend->>User: Display response in chat
+

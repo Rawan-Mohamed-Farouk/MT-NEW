@@ -1,0 +1,158 @@
+erDiagram
+    User ||--o{ JobApplication : "applies"
+    User ||--o{ JobApplication : "reviews"
+    User }o--o{ Disability : "has"
+    User }o--o{ Skill : "has"
+    User ||--o{ ConversationLog : "creates"
+    User ||--o{ ActivityLog : "generates"
+    User ||--o{ SecurityLog : "triggers"
+    
+    Job ||--o{ JobApplication : "receives"
+    Job ||--o{ JobRequirement : "has"
+    Job }o--|| Company : "belongs to"
+    Job }o--|| Location : "located at"
+    Job }o--o{ Disability : "supports"
+    
+    Disability }o--o{ AssistiveTool : "uses"
+    
+    User {
+        int id PK
+        string name
+        string email UK "UNIQUE, NOT NULL, INDEX"
+        string password
+        string user_type "DEFAULT 'user'"
+        string photo
+        string phone
+        int age
+        string gender
+        string location
+        string experience_level
+        string preferred_job_type
+        datetime created_at
+    }
+    
+    Disability {
+        int id PK
+        string name UK "UNIQUE, NOT NULL"
+        text description
+        string category
+        string icon
+        string severity
+    }
+    
+    Skill {
+        int id PK
+        string name UK "UNIQUE, NOT NULL"
+    }
+    
+    Job {
+        int id PK
+        string title "NOT NULL"
+        text description
+        string employment_type
+        string remote_type
+        int company_id FK
+        int location_id FK
+        datetime created_at
+    }
+    
+    Company {
+        int id PK
+        string name "NOT NULL"
+        text description
+        string website
+        string logo
+    }
+    
+    Location {
+        int id PK
+        string city
+        string state
+        string country
+        string address
+    }
+    
+    JobApplication {
+        int id PK
+        int job_id FK "NOT NULL"
+        int user_id FK "NOT NULL"
+        int reviewer_id FK
+        text cover_letter
+        string cv_path
+        string cv_file_path
+        text cv_extracted_info "JSON"
+        text manual_info
+        string status "DEFAULT 'pending'"
+        text admin_notes
+        datetime applied_at
+        datetime reviewed_at
+    }
+    
+    JobRequirement {
+        int id PK
+        int job_id FK "NOT NULL"
+        string requirement "NOT NULL"
+    }
+    
+    AssistiveTool {
+        int id PK
+        string name "NOT NULL"
+        text description
+        string category
+        string tool_type
+        string platform
+        string cost
+        string website_url
+        string icon
+        text features
+    }
+    
+    ConversationLog {
+        int id PK
+        int user_id FK
+        text message "NOT NULL"
+        text response
+        datetime created_at
+    }
+    
+    ActivityLog {
+        int id PK
+        int user_id FK
+        string action "NOT NULL"
+        text detail
+        datetime created_at
+    }
+    
+    SecurityLog {
+        int id PK
+        int user_id FK
+        string ip_address "NOT NULL"
+        string action "NOT NULL"
+        string severity "DEFAULT 'info'"
+        string threat_type
+        text details
+        string detected_by "DEFAULT 'system'"
+        boolean blocked "DEFAULT FALSE"
+        datetime created_at
+    }
+    
+    user_disabilities {
+        int user_id PK_FK
+        int disability_id PK_FK
+    }
+    
+    user_skills {
+        int user_id PK_FK
+        int skill_id PK_FK
+    }
+    
+    job_disability_support {
+        int job_id PK_FK
+        int disability_id PK_FK
+    }
+    
+    disability_tools {
+        int disability_id PK_FK
+        int tool_id PK_FK
+    }
+

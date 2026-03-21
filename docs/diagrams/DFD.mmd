@@ -1,0 +1,57 @@
+%% DFD Level 0 (Context Diagram)
+graph TB
+    User[Job Seeker]
+    Admin[Administrator]
+    Jobs[Job Data]
+    Tools[Assistive Tools Data]
+    System[EmpowerWork System]
+    
+    User -->|Job search requests| System
+    User -->|Application submissions| System
+    Admin -->|Management operations| System
+    System -->|Job postings| Jobs
+    System -->|Tool data| Tools
+
+%% DFD Level 1
+graph TB
+    User[User Interface]
+    
+    subgraph "Application Layer"
+        Auth[Auth Process]
+        Search[Job Search]
+        Profile[Profile Manager]
+        Chat[Chatbot Engine]
+        AppMgr[Application Manager]
+    end
+    
+    subgraph "Data Processing Layer"
+        Logic[Business Logic]
+        AI[AI Service]
+        Validation[Data Validation]
+    end
+    
+    subgraph "Data Storage Layer"
+        DB[(Database MySQL/MariaDB)]
+        FS[File System uploads/]
+        Logs[(Logs Database)]
+    end
+    
+    User --> Auth
+    User --> Search
+    User --> Profile
+    User --> Chat
+    User --> AppMgr
+    
+    Auth --> Validation
+    Search --> Logic
+    Profile --> Validation
+    Chat --> AI
+    Chat --> Logic
+    AppMgr --> Validation
+    
+    Validation --> Logic
+    Logic --> DB
+    Logic --> FS
+    Logic --> Logs
+    AI --> Logic
+
