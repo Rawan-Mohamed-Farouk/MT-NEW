@@ -17,7 +17,7 @@ import AdminApplications from './pages/AdminApplications';
 import AdminDisabilities from './pages/AdminDisabilities';
 import AdminSecurity from './pages/AdminSecurity';
 import Tools from './pages/Tools';
-import AITools from './pages/AITools';
+
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -88,14 +88,7 @@ function App() {
                   </PrivateRoute>
                 }
               />
-              <Route
-                path="/ai-tools"
-                element={
-                  <PrivateRoute>
-                    <AITools />
-                  </PrivateRoute>
-                }
-              />
+
               <Route
                 path="/admin"
                 element={

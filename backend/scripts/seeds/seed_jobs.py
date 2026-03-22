@@ -103,6 +103,10 @@ def seed_data():
     
     companies = {}
     for comp_data in companies_data:
+        # Remove fields that do not exist in the Company model
+        comp_data.pop("industry", None)
+        comp_data.pop("size", None)
+        
         existing = db.query(models.Company).filter(models.Company.name == comp_data["name"]).first()
         if not existing:
             company = models.Company(**comp_data)
@@ -126,6 +130,7 @@ def seed_data():
     
     locations = {}
     for loc_data in locations_data:
+        loc_data.pop("company_id", None)
         location = models.Location(**loc_data)
         db.add(location)
         db.flush()

@@ -348,7 +348,7 @@ def seed_tools():
             cost=tool_data["cost"],
             website_url=tool_data["website_url"],
             icon=tool_data["icon"],
-            features=tool_data["features"],
+            features=", ".join(tool_data["features"]) if isinstance(tool_data["features"], list) else tool_data["features"],
         )
         
         db.add(tool)

@@ -57,24 +57,7 @@ const Register = () => {
       const disabilityIds = [...formData.disabilities];
       const skillIds = [...formData.skills];
       
-      // Try to add custom disabilities (may require admin, so we'll handle gracefully)
-      for (const customDis of customDisabilities) {
-        try {
-          const response = await disabilityAPI.addDisability({
-            name: customDis.name,
-            category: customDis.category || 'Other',
-            description: `User-added disability: ${customDis.name}`,
-          });
-          if (response.data?.id) {
-            disabilityIds.push(response.data.id);
-            toast.success(`Added "${customDis.name}" to disabilities`);
-          }
-        } catch (error) {
-          // If adding fails (admin only), show message but continue
-          toast.error(`Could not add "${customDis.name}" - may need admin approval`);
-          console.log('Could not add custom disability:', error);
-        }
-      }
+
       
       // Try to add custom skills
       for (const customSkill of customSkills) {
@@ -179,167 +162,7 @@ const Register = () => {
               />
             </div>
 
-            {/* Disabilities Selection */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Disabilities <span className="text-red-500">*</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowAddDisability(!showAddDisability)}
-                  className="text-xs text-accent hover:underline"
-                >
-                  + Add Custom
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                Select all that apply. This helps us recommend the best jobs for you.
-              </p>
-              
-              {/* Add Custom Disability Form */}
-              {showAddDisability && (
-                <div className="mb-4 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
-                  <div className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={newDisabilityName}
-                      onChange={(e) => setNewDisabilityName(e.target.value)}
-                      placeholder="Enter disability name"
-                      className="flex-1 input-field text-sm"
-                    />
-                    <select
-                      value={newDisabilityCategory}
-                      onChange={(e) => setNewDisabilityCategory(e.target.value)}
-                      className="input-field text-sm"
-                    >
-                      <option value="Sensory">Sensory</option>
-                      <option value="Cognitive">Cognitive</option>
-                      <option value="Physical">Physical</option>
-                      <option value="Mental Health">Mental Health</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (newDisabilityName.trim()) {
-                          const customDis = {
-                            name: newDisabilityName.trim(),
-                            category: newDisabilityCategory,
-                            id: `custom-${Date.now()}`,
-                          };
-                          setCustomDisabilities([...customDisabilities, customDis]);
-                          setNewDisabilityName('');
-                          setShowAddDisability(false);
-                          toast.success('Custom disability added!');
-                        }
-                      }}
-                      className="btn-primary text-sm px-3 py-1"
-                    >
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAddDisability(false);
-                        setNewDisabilityName('');
-                      }}
-                      className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Display Custom Disabilities */}
-              {customDisabilities.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                    Custom Disabilities
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {customDisabilities.map((customDis, idx) => (
-                      <div
-                        key={customDis.id}
-                        className="flex items-center space-x-2 px-3 py-1 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 rounded-full text-sm"
-                      >
-                        <span>{customDis.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomDisabilities(customDisabilities.filter((_, i) => i !== idx));
-                          }}
-                          className="text-teal-600 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-200"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Group by category */}
-              {['Sensory', 'Cognitive', 'Physical', 'Mental Health', 'Other'].map((category) => {
-                const categoryDisabilities = disabilities.filter(d => d.category === category);
-                if (categoryDisabilities.length === 0) return null;
-                
-                return (
-                  <div key={category} className="mb-4">
-                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                      {category} Disabilities
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
-                      {categoryDisabilities.map((disability) => (
-                        <label
-                          key={disability.id}
-                          className="flex items-start space-x-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.disabilities.includes(disability.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setFormData({
-                                  ...formData,
-                                  disabilities: [...formData.disabilities, disability.id],
-                                });
-                              } else {
-                                setFormData({
-                                  ...formData,
-                                  disabilities: formData.disabilities.filter(id => id !== disability.id),
-                                });
-                              }
-                            }}
-                            className="mt-1 rounded border-gray-300 text-accent focus:ring-accent"
-                          />
-                          <div className="flex-1">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                              {disability.icon && <span className="mr-1">{disability.icon}</span>}
-                              {disability.name}
-                            </span>
-                            {disability.description && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                {disability.description.substring(0, 60)}...
-                              </p>
-                            )}
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {disabilities.length === 0 && (
-                <div className="text-center py-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Loading disabilities...
-                  </p>
-                </div>
-              )}
-            </div>
+
 
             {/* Skills Selection */}
             <div>
@@ -477,16 +300,11 @@ const Register = () => {
 
             <button
               type="submit"
-              disabled={loading || (formData.disabilities.length === 0 && customDisabilities.length === 0)}
+              disabled={loading}
               className="w-full btn-primary disabled:opacity-50"
             >
               {loading ? 'Creating account...' : 'Sign Up'}
             </button>
-            {formData.disabilities.length === 0 && customDisabilities.length === 0 && (
-              <p className="text-xs text-red-500 text-center">
-                Please select or add at least one disability to continue
-              </p>
-            )}
 
             <div className="text-center">
               <p className="text-sm text-gray-600 dark:text-gray-400">
