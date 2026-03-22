@@ -1,18 +1,13 @@
 # EmpowerWork - Job Assistance Platform for People with Disabilities
 
-## 🚀 Live Demo
-🟢 **Frontend Website:** [👉 Click Here to view the Live Website!](https://mt-new-yc7d.vercel.app/)
-⚙️ **Backend API Docs:** [👉 Click Here for Live API Docs](https://mt-new-sigma.vercel.app/docs)
-
-*Note: This platform is fully deployed on Vercel and connected to a live cloud MySQL Database.*
-
 ## 🎯 Project Overview
 
 EmpowerWork is a comprehensive job assistance platform designed specifically for people with disabilities. It provides intelligent job matching, personalized recommendations, assistive tools, an AI-powered chatbot, and accessibility-first UI to support inclusive employment.
 
 ## 👥 Project Team
+
 - **Rawan Mohamed Farouk**
-- **Khaled Ghalwash**
+-**Khaled Ghalwash**
 - **Mohamed Gamal**
 - **Mohamed Hassen**
 - **Mazen Hossam**
