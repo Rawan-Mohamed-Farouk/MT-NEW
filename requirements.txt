@@ -9,4 +9,5 @@ groq
 werkzeug
 python-multipart
 PyPDF2
+cryptography
 
