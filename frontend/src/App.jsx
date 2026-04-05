@@ -17,7 +17,7 @@ import AdminApplications from './pages/AdminApplications';
 import AdminDisabilities from './pages/AdminDisabilities';
 import AdminSecurity from './pages/AdminSecurity';
 import Tools from './pages/Tools';
-
+import CVGenerator from './pages/CVGenerator';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -85,6 +85,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <Tools />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/cv-generator"
+                element={
+                  <PrivateRoute>
+                    <CVGenerator />
                   </PrivateRoute>
                 }
               />
