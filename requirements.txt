@@ -10,4 +10,5 @@ werkzeug
 python-multipart
 PyPDF2
 cryptography
-
+reportlab
+python-multipart
