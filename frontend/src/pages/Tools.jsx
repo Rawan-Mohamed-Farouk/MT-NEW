@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, Search, Filter, Download } from 'lucide-react';
+import { ExternalLink, Search, Filter, Download, Mic, FileText, ArrowRight } from 'lucide-react';
 import { toolsAPI, disabilityAPI } from '../api/api';
 import { handleAPIError } from '../api/api';
 import toast from 'react-hot-toast';
@@ -125,6 +125,30 @@ const Tools = () => {
           <p className="text-gray-600 dark:text-gray-400">
             Tools and resources recommended based on your disabilities
           </p>
+        </div>
+
+        {/* AI Voice CV Generator Banner */}
+        <div className="mb-8 bg-gradient-to-r from-accent to-accent-dark rounded-xl shadow-lg p-6 md:p-8 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
+          <div className="z-10 flex-1 pr-4">
+            <div className="flex items-center space-x-3 mb-2">
+              <Mic className="h-6 w-6 text-white/90" />
+              <FileText className="h-6 w-6 text-white/90" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">Build Your CV with Your Voice</h2>
+            <p className="text-white/80 max-w-xl">
+              Use our AI-powered voice assistant to dictate your experience and skills. We will auto-magically generate a beautifully formatted, polished PDF resume for you.
+            </p>
+          </div>
+          <div className="z-10 mt-6 md:mt-0 flex-shrink-0">
+            <button 
+              onClick={() => navigate('/cv-generator')}
+              className="bg-white text-accent hover:bg-gray-50 flex items-center px-6 py-3 rounded-lg font-bold transition-transform hover:scale-105 active:scale-95"
+            >
+              Try CV Generator <ArrowRight className="ml-2 h-5 w-5" />
+            </button>
+          </div>
+          {/* Decorative background circle */}
+          <div className="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/4"></div>
         </div>
 
         {/* Filters */}
