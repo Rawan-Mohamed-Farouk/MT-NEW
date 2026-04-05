@@ -263,5 +263,21 @@ export const handleAPIError = (error) => {
   return message;
 };
 
+// CV endpoints
+export const cvAPI = {
+  transcribeAudio: (audioBlob) => {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+    return api.post('/cv/transcribe', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  generateCV: (data) => {
+    return api.post('/cv/generate', data, {
+      responseType: 'blob', // Important for downloading PDF
+    });
+  },
+};
+
 export default api;
 
