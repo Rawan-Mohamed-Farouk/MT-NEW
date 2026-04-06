@@ -103,24 +103,52 @@ const CVGenerator = () => {
   }, [interviewMode, currentStepIndex]);
 
   const processInterviewStep = (step) => {
-    // 1. Speak the prompt
     setInterviewStatus(`AI speaking: Asking for ${step.id}...`);
     const synth = window.speechSynthesis;
-    synth.cancel(); // Clear any ongoing speech
+    synth.cancel(); 
     
     const utterance = new SpeechSynthesisUtterance(step.prompt);
     
-    utterance.onend = () => {
-      // 2. Start listening immediately after speaking
-      startListeningForStep(step);
-    };
-    
-    utterance.onerror = (e) => {
-      console.error("Speech synthesis error:", e);
-      startListeningForStep(step); // Try listening anyway
+    // Fix: Wait for voices to load or grab a preferred voice right away
+    const setVoiceAndSpeak = () => {
+      const voices = synth.getVoices();
+      if (voices.length > 0) {
+        // Try finding a premium/natural English voice
+        utterance.voice = voices.find(v => v.name.includes('Google US English')) 
+                       || voices.find(v => v.lang === 'en-US') 
+                       || voices[0];
+      }
+      utterance.lang = 'en-US';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      // Fix: Chrome Garbage Collection bug drops utterance before it speaks
+      window.currentUtterance = utterance;
+
+      utterance.onend = () => {
+        startListeningForStep(step);
+      };
+      
+      utterance.onerror = (e) => {
+        console.error("Speech synthesis error:", e);
+        // If autoplay blocked the voice, show a toast so the user knows they need to interact
+        if (e.error === 'not-allowed') {
+          toast.error("Browser blocked auto-voice! Please click ANYWHERE on the page or 'Start Interview'.");
+        }
+        startListeningForStep(step);
+      };
+
+      synth.speak(utterance);
     };
 
-    synth.speak(utterance);
+    if (synth.getVoices().length === 0) {
+      synth.onvoiceschanged = () => setVoiceAndSpeak();
+      // fallback in case onvoiceschanged doesn't fire
+      setTimeout(setVoiceAndSpeak, 500);
+    } else {
+      setVoiceAndSpeak();
+    }
   };
 
   const startListeningForStep = (step) => {
