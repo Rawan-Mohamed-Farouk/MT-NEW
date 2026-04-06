@@ -109,11 +109,9 @@ const CVGenerator = () => {
     
     const utterance = new SpeechSynthesisUtterance(step.prompt);
     
-    // Fix: Wait for voices to load or grab a preferred voice right away
     const setVoiceAndSpeak = () => {
       const voices = synth.getVoices();
       if (voices.length > 0) {
-        // Try finding a premium/natural English voice
         utterance.voice = voices.find(v => v.name.includes('Google US English')) 
                        || voices.find(v => v.lang === 'en-US') 
                        || voices[0];
@@ -123,7 +121,6 @@ const CVGenerator = () => {
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
 
-      // Fix: Chrome Garbage Collection bug drops utterance before it speaks
       window.currentUtterance = utterance;
 
       utterance.onend = () => {
@@ -132,10 +129,8 @@ const CVGenerator = () => {
       
       utterance.onerror = (e) => {
         console.error("Speech synthesis error:", e);
-        // If autoplay blocked the voice, show a toast so the user knows they need to interact
-        if (e.error === 'not-allowed') {
-          toast.error("Browser blocked auto-voice! Please click ANYWHERE on the page or 'Start Interview'.");
-        }
+        // If autoplay blocked the voice, don't show an annoying toast. 
+        // Our global click listener will catch the next click to initialize it properly!
         startListeningForStep(step);
       };
 
@@ -144,12 +139,37 @@ const CVGenerator = () => {
 
     if (synth.getVoices().length === 0) {
       synth.onvoiceschanged = () => setVoiceAndSpeak();
-      // fallback in case onvoiceschanged doesn't fire
       setTimeout(setVoiceAndSpeak, 500);
     } else {
       setVoiceAndSpeak();
     }
   };
+
+  // Auto-start interview on page load or strictly on first click
+  useEffect(() => {
+    // Attempt to start immediately (works if navigated via React Router links)
+    if (!interviewMode && currentStepIndex === -1) {
+      startInterview();
+    }
+
+    // Modern browsers strict autoplay policy fallback:
+    // If the immediate start above was blocked silently, the very first click 
+    // anywhere on the page will re-trigger the interview perfectly.
+    const handleFirstInteraction = () => {
+      // Only trigger if it failed to start or hasn't started correctly
+      if (!interviewMode || window.speechSynthesis.speaking === false) {
+        startInterview();
+      }
+      document.removeEventListener('click', handleFirstInteraction);
+    };
+    
+    document.addEventListener('click', handleFirstInteraction);
+    
+    return () => {
+      document.removeEventListener('click', handleFirstInteraction);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startListeningForStep = (step) => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
