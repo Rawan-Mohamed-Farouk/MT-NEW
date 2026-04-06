@@ -108,6 +108,13 @@ export default function CVGenerator() {
       
       const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
       const audioContext = new AudioContextCtor();
+      
+      // CRITICAL CHROME FIX: Async mic permission prompts can cause the
+      // AudioContext to instantly suspend on desktop Chrome.
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      
       audioContextRef.current = audioContext;
       
       const analyser = audioContext.createAnalyser();
@@ -173,7 +180,8 @@ export default function CVGenerator() {
         const sum = dataArray.reduce((val, acc) => val + acc, 0);
         const average = sum / dataArray.length;
         
-        if (average > 15) { // Threshold for speech
+        // Lowered threshold from 15 to 5 because Desktop Chrome mics are often quieter
+        if (average > 5) { 
            if (!hasSpoken) hasSpoken = true;
            silenceStart = Date.now();
         } else {
