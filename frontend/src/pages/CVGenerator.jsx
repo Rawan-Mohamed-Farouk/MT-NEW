@@ -69,18 +69,6 @@ const CVGenerator = () => {
     toast('Interview stopped.', { icon: '🛑' });
   };
 
-  // Auto-start interview on page load
-  useEffect(() => {
-    // Add a slight delay to ensure smooth page transition before AI starts speaking
-    const timer = setTimeout(() => {
-      if (!interviewMode && currentStepIndex === -1) {
-        startInterview();
-      }
-    }, 600);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     if (interviewMode && currentStepIndex >= 0 && currentStepIndex < INTERVIEW_STEPS.length) {
       processInterviewStep(INTERVIEW_STEPS[currentStepIndex]);
@@ -103,73 +91,25 @@ const CVGenerator = () => {
   }, [interviewMode, currentStepIndex]);
 
   const processInterviewStep = (step) => {
+    // 1. Speak the prompt
     setInterviewStatus(`AI speaking: Asking for ${step.id}...`);
     const synth = window.speechSynthesis;
-    synth.cancel(); 
+    synth.cancel(); // Clear any ongoing speech
     
     const utterance = new SpeechSynthesisUtterance(step.prompt);
     
-    const setVoiceAndSpeak = () => {
-      const voices = synth.getVoices();
-      if (voices.length > 0) {
-        utterance.voice = voices.find(v => v.name.includes('Google US English')) 
-                       || voices.find(v => v.lang === 'en-US') 
-                       || voices[0];
-      }
-      utterance.lang = 'en-US';
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-
-      window.currentUtterance = utterance;
-
-      utterance.onend = () => {
-        startListeningForStep(step);
-      };
-      
-      utterance.onerror = (e) => {
-        console.error("Speech synthesis error:", e);
-        // If autoplay blocked the voice, don't show an annoying toast. 
-        // Our global click listener will catch the next click to initialize it properly!
-        startListeningForStep(step);
-      };
-
-      synth.speak(utterance);
+    utterance.onend = () => {
+      // 2. Start listening immediately after speaking
+      startListeningForStep(step);
+    };
+    
+    utterance.onerror = (e) => {
+      console.error("Speech synthesis error:", e);
+      startListeningForStep(step); // Try listening anyway
     };
 
-    if (synth.getVoices().length === 0) {
-      synth.onvoiceschanged = () => setVoiceAndSpeak();
-      setTimeout(setVoiceAndSpeak, 500);
-    } else {
-      setVoiceAndSpeak();
-    }
+    synth.speak(utterance);
   };
-
-  // Auto-start interview on page load or strictly on first click
-  useEffect(() => {
-    // Attempt to start immediately (works if navigated via React Router links)
-    if (!interviewMode && currentStepIndex === -1) {
-      startInterview();
-    }
-
-    // Modern browsers strict autoplay policy fallback:
-    // If the immediate start above was blocked silently, the very first click 
-    // anywhere on the page will re-trigger the interview perfectly.
-    const handleFirstInteraction = () => {
-      // Only trigger if it failed to start or hasn't started correctly
-      if (!interviewMode || window.speechSynthesis.speaking === false) {
-        startInterview();
-      }
-      document.removeEventListener('click', handleFirstInteraction);
-    };
-    
-    document.addEventListener('click', handleFirstInteraction);
-    
-    return () => {
-      document.removeEventListener('click', handleFirstInteraction);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const startListeningForStep = (step) => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
