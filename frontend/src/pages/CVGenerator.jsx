@@ -69,6 +69,18 @@ const CVGenerator = () => {
     toast('Interview stopped.', { icon: '🛑' });
   };
 
+  // Auto-start interview on page load
+  useEffect(() => {
+    // Add a slight delay to ensure smooth page transition before AI starts speaking
+    const timer = setTimeout(() => {
+      if (!interviewMode && currentStepIndex === -1) {
+        startInterview();
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (interviewMode && currentStepIndex >= 0 && currentStepIndex < INTERVIEW_STEPS.length) {
       processInterviewStep(INTERVIEW_STEPS[currentStepIndex]);
