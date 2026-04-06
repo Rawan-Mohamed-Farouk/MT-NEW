@@ -1,239 +1,206 @@
-import { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, FileText, Download, Loader2, PlayCircle, StopCircle, Speech } from 'lucide-react';
-import { cvAPI, handleAPIError } from '../api/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { Download, Loader2, PlayCircle, Mic } from 'lucide-react';
+import { cvAPI } from '../api/api';
 import toast from 'react-hot-toast';
 
-const INTERVIEW_STEPS = [
-  { id: 'name', prompt: "Welcome! Let's build your CV. Please tell me your full name." },
-  { id: 'phone', prompt: "Great. Now, what is your mobile phone number?" },
-  { id: 'email', prompt: "What is your email address?" },
-  { id: 'title', prompt: "What is your professional job title?" },
-  { id: 'skills', prompt: "What are your core skills? Please list them." },
-  { id: 'education', prompt: "Tell me about your educational background." },
-  { id: 'experience', prompt: "Finally, tell me about your past work experience." }
+const STEPS = [
+  { id: 'name', prompt: 'Welcome to the CV Generator. Please clearly say your full name.' },
+  { id: 'phone', prompt: 'Please say your mobile phone number.' },
+  { id: 'email', prompt: 'What is your email address?' },
+  { id: 'title', prompt: 'What is your current or desired job title?' },
+  { id: 'skills', prompt: 'Please list your technical or professional skills.' },
+  { id: 'education', prompt: 'Tell me about your educational background.' },
+  { id: 'experience', prompt: 'Finally, tell me about your work experience.' }
 ];
 
-const CVGenerator = () => {
+export default function CVGenerator() {
   const [formData, setFormData] = useState({
-    name: '',
-    title: '',
-    email: '',
-    phone: '',
-    experience: '',
-    education: '',
-    skills: ''
+    name: '', phone: '', email: '', title: '', skills: '', education: '', experience: ''
   });
-
-  // Manual transcription states
-  const [isRecording, setIsRecording] = useState(false);
-  const [activeField, setActiveField] = useState(null); 
+  
+  const [isActive, setIsActive] = useState(false);
+  const [currentStep, setCurrentStep] = useState(-1);
+  const [statusText, setStatusText] = useState('Click anywhere to start the AI Voice Assistant');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-
-  // Interview Mode states
-  const [interviewMode, setInterviewMode] = useState(false);
-  const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-  const [interviewStatus, setInterviewStatus] = useState('');
-  const recognitionRef = useRef(null);
-
-  // Audio recording refs (for manual fallback)
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-
+  
+  const audioContextRef = useRef(null);
+  const streamRef = useRef(null);
+  
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // ==========================================
-  // INTERVIEW MODE LOGIC (Web Speech API)
-  // ==========================================
-  const startInterview = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error("Your browser doesn't support the Voice Interview mode. Please use Google Chrome.");
-      return;
-    }
-    setInterviewMode(true);
-    setCurrentStepIndex(0);
-  };
-
-  const stopInterview = () => {
-    window.speechSynthesis.cancel();
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    setInterviewMode(false);
-    setCurrentStepIndex(-1);
-    setInterviewStatus('');
-    toast('Interview stopped.', { icon: '🛑' });
-  };
-
+  // Mount logic: wait for first click to satisfy autoplay
   useEffect(() => {
-    if (interviewMode && currentStepIndex >= 0 && currentStepIndex < INTERVIEW_STEPS.length) {
-      processInterviewStep(INTERVIEW_STEPS[currentStepIndex]);
-    } else if (interviewMode && currentStepIndex >= INTERVIEW_STEPS.length) {
-      // Finished all steps
-      setInterviewMode(false);
-      setCurrentStepIndex(-1);
-      setInterviewStatus('');
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance("All done! Please review your details and click generate."));
-      toast.success("Interview complete! Review your details.");
-    }
+    const handleFirstClick = () => {
+      if (!isActive && currentStep === -1) {
+        setIsActive(true);
+        setCurrentStep(0);
+        setStatusText('Starting...');
+      }
+    };
     
-    // Cleanup on unmount or interview mode end
+    document.addEventListener('click', handleFirstClick);
     return () => {
-      window.speechSynthesis.cancel();
-      if (recognitionRef.current) {
-         try { recognitionRef.current.stop(); } catch(e) {}
-      }
-    }
-  }, [interviewMode, currentStepIndex]);
+      document.removeEventListener('click', handleFirstClick);
+      stopTracks();
+    };
+  }, [isActive, currentStep]);
 
-  const processInterviewStep = (step) => {
+  const stopTracks = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+    }
+  };
+
+  // Run the sequence
+  useEffect(() => {
+    if (isActive && currentStep >= 0 && currentStep < STEPS.length) {
+      runStep(STEPS[currentStep]);
+    } else if (isActive && currentStep >= STEPS.length) {
+      setStatusText('All Done! Please review and click Generate.');
+      setIsActive(false);
+      speakText('All done! Please review your details below and click Generate Resume.');
+    }
+  }, [isActive, currentStep]);
+
+  const speakText = (text) => {
+    return new Promise((resolve) => {
+      const synth = window.speechSynthesis;
+      synth.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      const voices = synth.getVoices();
+      if (voices.length > 0) {
+        utterance.voice = voices.find(v => v.name.includes('Google US English')) 
+                       || voices.find(v => v.lang === 'en-US') 
+                       || voices[0];
+      }
+      utterance.rate = 1.0;
+      
+      // Prevent GC bug
+      window._currentUtterance = utterance;
+      
+      utterance.onend = () => { resolve(); };
+      utterance.onerror = () => { resolve(); };
+      
+      synth.speak(utterance);
+      
+      // Safety timeout in case onend drops
+      setTimeout(() => resolve(), text.length * 100 + 2000);
+    });
+  };
+
+  const runStep = async (step) => {
+    setStatusText(`AI is speaking: Asking for ${step.id}...`);
     // 1. Speak the prompt
-    setInterviewStatus(`AI speaking: Asking for ${step.id}...`);
-    const synth = window.speechSynthesis;
-    synth.cancel(); // Clear any ongoing speech
+    await speakText(step.prompt);
     
-    const utterance = new SpeechSynthesisUtterance(step.prompt);
-    
-    utterance.onend = () => {
-      // 2. Start listening immediately after speaking
-      startListeningForStep(step);
-    };
-    
-    utterance.onerror = (e) => {
-      console.error("Speech synthesis error:", e);
-      startListeningForStep(step); // Try listening anyway
-    };
-
-    synth.speak(utterance);
-  };
-
-  const startListeningForStep = (step) => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    
-    recognition.lang = 'en-US';
-    recognition.continuous = false; // Auto-detects silence and stops
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-      setInterviewStatus(`Listening for your ${step.id}...`);
-    };
-
-    let hasResult = false;
-    
-    recognition.onresult = (event) => {
-      const text = event.results[0][0].transcript;
-      hasResult = true;
-      setFormData(prev => {
-        // Append text if there's already some content, else just set it
-        const currentVal = prev[step.id];
-        const separator = (step.id === 'experience' || step.id === 'education') ? '\n' : ' ';
-        return {
-          ...prev,
-          [step.id]: currentVal ? `${currentVal}${separator}${text}` : text
-        };
-      });
-    };
-
-    recognition.onend = () => {
-      // Automatically proceed to next step
-      // Little delay so it doesn't instantly snap
-      setTimeout(() => {
-        if (interviewMode) {
-          setCurrentStepIndex(prev => prev + 1);
-        }
-      }, 500);
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-      if (event.error === 'no-speech') {
-         // User didn't say anything, just move on smoothly
-         if (interviewMode) {
-           setCurrentStepIndex(prev => prev + 1);
-         }
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch (e) {
-      console.error("Failed to start recognition", e);
-    }
-  };
-
-
-  // ==========================================
-  // MANUAL AUDIO RECORDING LOGIC (Groq API)
-  // ==========================================
-  const startRecordingManual = async (field) => {
+    // 2. Start recording and waiting for silence
+    setStatusText(`Listening to your ${step.id}... (Speak now)`);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorderRef.current.onstop = async () => {
-        if (audioChunksRef.current.length === 0) return;
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await handleManualTranscription(audioBlob, field);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      setActiveField(field);
-      toast.success('Recording started...');
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      toast.error('Microphone access denied or unavailable.');
-    }
-  };
-
-  const stopRecordingManual = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
-    }
-  };
-
-  const handleManualTranscription = async (audioBlob, field) => {
-    setIsTranscribing(true);
-    try {
-      const response = await cvAPI.transcribeAudio(audioBlob);
-      const text = response.data.text;
+      streamRef.current = stream;
       
-      setFormData(prev => ({
-        ...prev,
-        [field]: prev[field] ? `${prev[field]}\n${text}` : text
-      }));
-      toast.success('Transcription successful!');
-    } catch (error) {
-      handleAPIError(error);
-    } finally {
-      setIsTranscribing(false);
-      setActiveField(null);
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioContextCtor();
+      audioContextRef.current = audioContext;
+      
+      const analyser = audioContext.createAnalyser();
+      const microphone = audioContext.createMediaStreamSource(stream);
+      microphone.connect(analyser);
+      analyser.fftSize = 512;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      const mediaRecorder = new MediaRecorder(stream);
+      const audioChunks = [];
+      
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+      
+      let isRecordingEnded = false;
+
+      mediaRecorder.onstop = async () => {
+        isRecordingEnded = true;
+        stopTracks();
+        
+        if (audioChunks.length === 0) {
+           setCurrentStep(prev => prev + 1);
+           return;
+        }
+        
+        setStatusText(`Transcribing your ${step.id}...`);
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        
+        try {
+          const response = await cvAPI.transcribeAudio(blob);
+          const transcript = response.data.text.trim();
+          
+          // Filter out typical Whisper hallucinations on silence
+          const lower = transcript.toLowerCase();
+          const isHallucination = lower.includes("thank you for") || lower.includes("subscribe") || transcript.length < 2;
+          
+          if (!isHallucination) {
+            setFormData(prev => ({
+              ...prev,
+              [step.id]: prev[step.id] ? `${prev[step.id]}\n${transcript}` : transcript
+            }));
+          }
+        } catch(err) {
+          console.error("Transcription error", err);
+        }
+        
+        // Move to next step
+        setCurrentStep(prev => prev + 1);
+      };
+
+      mediaRecorder.start();
+
+      // Silence detection logic
+      let silenceStart = Date.now();
+      let hasSpoken = false;
+
+      const detectSilence = () => {
+        if (isRecordingEnded || mediaRecorder.state !== 'recording') return;
+        
+        analyser.getByteFrequencyData(dataArray);
+        const sum = dataArray.reduce((val, acc) => val + acc, 0);
+        const average = sum / dataArray.length;
+        
+        if (average > 15) { // Threshold for speech
+           if (!hasSpoken) hasSpoken = true;
+           silenceStart = Date.now();
+        } else {
+           if (hasSpoken) {
+              // User SPOKE, now wait 2 seconds of silence to close
+              if (Date.now() - silenceStart > 2000) {
+                 mediaRecorder.stop();
+                 return;
+              }
+           } else {
+              // User HAS NOT SPOKEN, wait 6 seconds to timeout
+              if (Date.now() - silenceStart > 6000) {
+                 mediaRecorder.stop();
+                 return;
+              }
+           }
+        }
+        requestAnimationFrame(detectSilence);
+      };
+      
+      detectSilence();
+      
+    } catch(err) {
+       console.error("Mic error", err);
+       toast.error("Microphone access denied. Moving to next question.");
+       setCurrentStep(prev => prev + 1);
     }
-  };
-
-
-  // ==========================================
-  // UI HELPERS
-  // ==========================================
-  const calculateProgress = () => {
-    const totalFields = Object.keys(formData).length;
-    const filledFields = Object.values(formData).filter(v => typeof v === 'string' && v.trim() !== '').length;
-    return Math.round((filledFields / totalFields) * 100);
   };
 
   const handleSubmit = async (e) => {
@@ -242,11 +209,9 @@ const CVGenerator = () => {
       toast.error('Name and Email are required!');
       return;
     }
-
     setIsGenerating(true);
     try {
       const response = await cvAPI.generateCV(formData);
-      
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -254,205 +219,131 @@ const CVGenerator = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
-      toast.success('Resume generated and downloaded successfully!');
+      toast.success('Resume downloaded!');
     } catch (error) {
-      toast.error('Failed to generate CV. Make sure the backend is running.');
-      console.error(error);
+      toast.error('Failed to generate CV.');
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const calculateProgress = () => {
+    const total = 7;
+    const filled = Object.values(formData).filter(v => v.trim() !== '').length;
+    return Math.round((filled / total) * 100);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Header & Interview Mode Controls */}
-        <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-            <div className="flex items-center space-x-4">
-              <div className="bg-accent/10 p-3 rounded-full text-accent">
-                <Speech className="h-8 w-8" />
+        {/* Status Overlay Clicker */}
+        {!isActive && currentStep === -1 && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 cursor-pointer pointer-events-auto transition-opacity"
+               onClick={() => {
+                 setIsActive(true);
+                 setCurrentStep(0);
+                 setStatusText('Starting...');
+               }}>
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl text-center transform hover:scale-105 transition-transform duration-300">
+              <div className="bg-accent/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <Mic className="h-12 w-12 text-accent" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  AI Voice CV Generator
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  Start the conversational interview, or fill it out manually below.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex-shrink-0">
-              {interviewMode ? (
-                <button
-                  onClick={stopInterview}
-                  className="bg-red-500 hover:bg-red-600 text-white flex items-center px-5 py-2.5 rounded-lg shadow-lg font-semibold transition-all hover:scale-105 active:scale-95 animate-pulse"
-                >
-                  <StopCircle className="w-5 h-5 mr-2" /> Stop Interview
-                </button>
-              ) : (
-                <button
-                  onClick={startInterview}
-                  className="bg-gradient-to-r from-accent to-accent-dark hover:from-primary-600 hover:to-accent text-white flex items-center px-5 py-2.5 rounded-lg shadow-lg font-semibold transition-all hover:scale-105 active:scale-95"
-                >
-                  <PlayCircle className="w-5 h-5 mr-2" /> Start Interview
-                </button>
-              )}
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Ready to Build Your CV?</h2>
+              <p className="text-gray-500 dark:text-gray-400 text-lg">Tap anywhere to start the automated AI Interview.</p>
             </div>
           </div>
-          
-          {/* Active Interview Status Banner */}
-          {interviewMode && (
-             <div className="mb-4 bg-blue-50 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 rounded-lg p-4 flex items-center justify-between">
-                <div className="flex items-center text-blue-800 dark:text-blue-200">
-                   <div className="w-3 h-3 bg-red-500 rounded-full animate-ping mr-3"></div>
-                   <span className="font-medium text-lg">{interviewStatus}</span>
-                </div>
-                <div className="text-sm text-blue-600 dark:text-blue-300 font-medium bg-blue-100 dark:bg-blue-900/50 px-3 py-1 rounded-full">
-                  Step {currentStepIndex + 1} of {INTERVIEW_STEPS.length}
-                </div>
-             </div>
-          )}
+        )}
 
-          {/* Progress Bar */}
-          <div className="mt-4">
-            <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3">
+                <Mic className="text-accent" /> AI Voice Interview
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-2 font-medium">
+                {statusText}
+              </p>
+            </div>
+            {isActive && (
+              <div className="flex items-center gap-3 font-semibold text-accent bg-accent/10 px-4 py-2 rounded-lg">
+                <Loader2 className="animate-spin w-5 h-5" />
+                Step {currentStep + 1} of {STEPS.length}
+              </div>
+            )}
+          </div>
+          
+          <div className="mt-6">
+            <div className="flex justify-between text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
               <span>Profile Completion</span>
               <span>{calculateProgress()}%</span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
-              <div 
-                className="bg-accent h-2.5 rounded-full transition-all duration-500 ease-out relative" 
-                style={{ width: `${calculateProgress()}%` }}
-              >
-                <div className="absolute top-0 left-0 bottom-0 right-0 bg-white/20 animate-pulse"></div>
-              </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner">
+              <div className="bg-accent h-3 rounded-full transition-all duration-700 ease-out" 
+                style={{ width: `${calculateProgress()}%` }}></div>
             </div>
           </div>
         </div>
 
-        {/* Main Form */}
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 lg:p-8 border border-gray-200 dark:border-gray-700 space-y-6">
-          
-          {/* Personal Info Grid */}
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 lg:p-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              {['name', 'title', 'email', 'phone'].map((field) => (
                 <div key={field}>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 capitalize">
-                    {field === 'name' ? 'Full Name *' : field === 'email' ? 'Email *' : field}
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 capitalize">
+                    {field === 'name' ? 'Full Name' : field}
                   </label>
                   <input
                     type={field === 'email' ? 'email' : field === 'phone' ? 'tel' : 'text'}
                     name={field}
                     value={formData[field]}
                     onChange={handleInputChange}
-                    required={field === 'name' || field === 'email'}
-                    className={`input-field w-full transition-all duration-300 ${interviewMode && INTERVIEW_STEPS[currentStepIndex]?.id === field ? 'ring-2 ring-accent border-transparent bg-blue-50 dark:bg-blue-900/20' : ''}`}
-                    placeholder={`Enter your ${field}`}
+                    className={`input-field w-full transition-all duration-300 ${isActive && STEPS[currentStep]?.id === field ? 'ring-4 ring-accent bg-blue-50/50' : 'bg-gray-50'}`}
+                    placeholder={`Waiting for ${field}...`}
                   />
                 </div>
              ))}
           </div>
 
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-            {/* Experience Area with Voice */}
-            <div className={`mb-6 rounded-lg transition-all duration-300 ${interviewMode && INTERVIEW_STEPS[currentStepIndex]?.id === 'experience' ? 'ring-2 ring-accent p-2 bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
-              <div className="flex justify-between items-end mb-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Experience</label>
-                <button
-                  type="button"
-                  onClick={() => isRecording && activeField === 'experience' ? stopRecordingManual() : startRecordingManual('experience')}
-                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    isRecording && activeField === 'experience' 
-                      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 animate-pulse' 
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                  disabled={isTranscribing || (isRecording && activeField !== 'experience') || interviewMode}
-                >
-                  {isRecording && activeField === 'experience' ? (
-                    <><MicOff className="h-4 w-4" /> <span>Stop Manual Record</span></>
-                  ) : (
-                    <><Mic className="h-4 w-4" /> <span>Manual Record</span></>
-                  )}
-                </button>
+          <div className="grid grid-cols-1 gap-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+            {['experience', 'education', 'skills'].map((field) => (
+              <div key={field}>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 capitalize">
+                  {field}
+                </label>
+                {field === 'skills' ? (
+                  <input
+                    type="text"
+                    name={field}
+                    value={formData[field]}
+                    onChange={handleInputChange}
+                    className={`input-field w-full transition-all duration-300 ${isActive && STEPS[currentStep]?.id === field ? 'ring-4 ring-accent bg-blue-50/50' : 'bg-gray-50'}`}
+                    placeholder={`Your ${field} will appear here...`}
+                  />
+                ) : (
+                  <textarea
+                    name={field}
+                    value={formData[field]}
+                    onChange={handleInputChange}
+                    rows={4}
+                    className={`input-field w-full p-4 transition-all duration-300 resize-y ${isActive && STEPS[currentStep]?.id === field ? 'ring-4 ring-accent bg-blue-50/50' : 'bg-gray-50'}`}
+                    placeholder={`Your ${field} will appear here...`}
+                  />
+                )}
               </div>
-              <textarea
-                name="experience"
-                value={formData.experience}
-                onChange={handleInputChange}
-                rows={4}
-                className="input-field w-full p-3 resize-y"
-                placeholder="Talk about your past roles or type them out..."
-                disabled={(isTranscribing && activeField === 'experience')}
-              />
-            </div>
-
-            {/* Education Area with Voice */}
-            <div className={`mb-6 rounded-lg transition-all duration-300 ${interviewMode && INTERVIEW_STEPS[currentStepIndex]?.id === 'education' ? 'ring-2 ring-accent p-2 bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
-              <div className="flex justify-between items-end mb-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Education</label>
-                <button
-                  type="button"
-                  onClick={() => isRecording && activeField === 'education' ? stopRecordingManual() : startRecordingManual('education')}
-                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    isRecording && activeField === 'education' 
-                      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 animate-pulse' 
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                  disabled={isTranscribing || (isRecording && activeField !== 'education') || interviewMode}
-                >
-                  {isRecording && activeField === 'education' ? (
-                    <><MicOff className="h-4 w-4" /> <span>Stop Manual Record</span></>
-                  ) : (
-                    <><Mic className="h-4 w-4" /> <span>Manual Record</span></>
-                  )}
-                </button>
-              </div>
-              <textarea
-                name="education"
-                value={formData.education}
-                onChange={handleInputChange}
-                rows={3}
-                className="input-field w-full p-3 resize-y"
-                placeholder="Mention your degrees and universities..."
-                disabled={(isTranscribing && activeField === 'education')}
-              />
-            </div>
-
-            {/* Skills */}
-            <div className={`mb-6 rounded-lg transition-all duration-300 ${interviewMode && INTERVIEW_STEPS[currentStepIndex]?.id === 'skills' ? 'ring-2 ring-accent p-2 bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Skills</label>
-              <input
-                type="text"
-                name="skills"
-                value={formData.skills}
-                onChange={handleInputChange}
-                className="input-field w-full"
-                placeholder="e.g. Python, React, Team Leadership (comma separated)"
-              />
-            </div>
+            ))}
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-end pt-6">
             <button
               type="submit"
-              disabled={isGenerating || isRecording || isTranscribing || interviewMode}
-              className="btn-primary flex items-center px-6 py-3 text-base shadow-lg transition-transform hover:scale-105 active:scale-95 disabled:hover:scale-100 disabled:opacity-50"
+              disabled={isGenerating || isActive}
+              className="btn-primary w-full md:w-auto text-lg px-8 py-4 shadow-xl flex justify-center items-center gap-2"
             >
-              {isGenerating ? (
-                <><Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" /> Designing your CV...</>
-              ) : (
-                <><Download className="-ml-1 mr-2 h-5 w-5" /> Generate Resume (PDF)</>
-              )}
+              {isGenerating ? <><Loader2 className="animate-spin w-6 h-6" /> Building Resume...</> : <><Download className="w-6 h-6" /> Download Professional PDF Resume</>}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-};
-
-export default CVGenerator;
+}
