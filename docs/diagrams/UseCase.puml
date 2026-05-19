@@ -1,0 +1,59 @@
+@startuml UseCase
+left to right direction
+
+actor "Job Seeker" as User
+actor "Administrator" as Admin
+
+rectangle "EmpowerWork System" {
+  package "User Functions" {
+    usecase "Register Account" as UC1
+    usecase "Login" as UC2
+    usecase "View Profile" as UC3
+    usecase "Edit Profile" as UC4
+    usecase "Search Jobs" as UC5
+    usecase "Filter Jobs" as UC6
+    usecase "Apply for Job" as UC7
+    usecase "Upload CV" as UC8
+    usecase "Chat with AI Assistant" as UC9
+    usecase "View Assistive Tools" as UC10
+    usecase "View Application History" as UC11
+  }
+  
+  package "Admin Functions" {
+    usecase "Manage Users" as UC12
+    usecase "Manage Jobs" as UC13
+    usecase "Manage Companies" as UC14
+    usecase "Review Applications" as UC15
+    usecase "Approve/Reject Applications" as UC16
+    usecase "Manage Disabilities" as UC17
+    usecase "View Dashboard" as UC18
+    usecase "View Security Logs" as UC19
+  }
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC9
+User --> UC10
+User --> UC11
+
+Admin --> UC12
+Admin --> UC13
+Admin --> UC14
+Admin --> UC15
+Admin --> UC16
+Admin --> UC17
+Admin --> UC18
+Admin --> UC19
+
+UC7 ..> UC8 : includes
+UC5 ..> UC6 : includes
+
+@enduml
+

@@ -1,0 +1,152 @@
+%% User Activity Diagram - Complete User Workflow
+flowchart TD
+    Start([User Starts]) --> CheckLogin{User Logged In?}
+    
+    CheckLogin -->|No| LoginPage[Go to Login Page]
+    LoginPage --> LoginChoice{Login Type?}
+    LoginChoice -->|User| UserLogin[Enter Email & Password]
+    LoginChoice -->|Admin| AdminLogin[Enter Admin Credentials]
+    UserLogin --> ValidateLogin{Valid Credentials?}
+    AdminLogin --> ValidateLogin
+    ValidateLogin -->|No| LoginError[Show Error Message]
+    LoginError --> LoginPage
+    ValidateLogin -->|Yes| SetSession[Set User Session]
+    SetSession --> HomePage[Go to Home Page]
+    
+    CheckLogin -->|Yes| HomePage
+    
+    HomePage --> MainMenu{User Action?}
+    
+    %% Job Search Flow
+    MainMenu -->|Search Jobs| JobSearch[Enter Search Query]
+    JobSearch --> ApplyFilters[Apply Filters:<br/>- Disability<br/>- Skills<br/>- Employment Type<br/>- Remote Type]
+    ApplyFilters --> SearchJobs[Search Jobs]
+    SearchJobs --> DisplayResults[Display Job Results]
+    DisplayResults --> SelectJob{Select Job?}
+    SelectJob -->|Yes| ViewJobDetails[View Job Details]
+    ViewJobDetails --> ApplyDecision{Apply for Job?}
+    ApplyDecision -->|Yes| ApplicationMethod{Application Method?}
+    ApplyDecision -->|No| DisplayResults
+    
+    %% CV Upload Application Flow
+    ApplicationMethod -->|CV Upload| UploadCV[Upload CV PDF]
+    UploadCV --> ValidateCV{CV Valid?}
+    ValidateCV -->|No| CVError[Show Error Message]
+    CVError --> UploadCV
+    ValidateCV -->|Yes| ExtractCVInfo[Extract CV Information]
+    ExtractCVInfo --> WriteCoverLetter[Write Cover Letter]
+    WriteCoverLetter --> SubmitCVApp[Submit Application]
+    SubmitCVApp --> SaveApplication[Save Application to Database]
+    SaveApplication --> AppSuccess[Show Success Message]
+    AppSuccess --> DisplayResults
+    
+    %% Manual Entry Application Flow
+    ApplicationMethod -->|Manual Entry| ManualForm[Fill Manual Entry Form]
+    ManualForm --> PrefillData[Pre-fill with Profile Data]
+    PrefillData --> EditManualInfo[Edit/Confirm Information:<br/>- Name<br/>- Email<br/>- Phone<br/>- Skills<br/>- Experience<br/>- Education]
+    EditManualInfo --> WriteCoverLetter2[Write Cover Letter]
+    WriteCoverLetter2 --> SubmitManualApp[Submit Application]
+    SubmitManualApp --> SaveApplication
+    
+    %% Profile Management Flow
+    MainMenu -->|View Profile| ProfilePage[Go to Profile Page]
+    ProfilePage --> ViewProfileInfo[View Profile Information]
+    ViewProfileInfo --> ViewApplications[View Application History]
+    ViewApplications --> ViewAppStatus[View Application Status:<br/>- Pending<br/>- Approved<br/>- Rejected<br/>- Reviewing]
+    ViewAppStatus --> ProfileAction{Profile Action?}
+    ProfileAction -->|Edit Profile| EditProfile[Edit Profile Information]
+    ProfileAction -->|View Applications| ViewApplications
+    ProfileAction -->|Back to Home| HomePage
+    EditProfile --> UpdateFields[Update Fields:<br/>- Name<br/>- Phone<br/>- Age<br/>- Gender<br/>- Location<br/>- Experience Level<br/>- Preferred Job Type]
+    UpdateFields --> UpdateDisabilities[Update Disabilities]
+    UpdateDisabilities --> UpdateSkills[Update Skills]
+    UpdateSkills --> UpdatePhoto{Change Photo?}
+    UpdatePhoto -->|Yes| UploadPhoto[Upload New Photo]
+    UpdatePhoto -->|No| SaveProfile
+    UploadPhoto --> SaveProfile[Save Profile Changes]
+    SaveProfile --> ProfileSaved[Show Success Message]
+    ProfileSaved --> ProfilePage
+    
+    %% Chatbot Flow
+    MainMenu -->|Chat with AI| ChatPage[Go to Chat Page]
+    ChatPage --> LoadUserProfile[Load User Profile:<br/>- Disabilities<br/>- Skills<br/>- Application History]
+    LoadUserProfile --> LoadJobs[Load Available Jobs]
+    LoadJobs --> FilterJobs[Filter Jobs for Chatbot]
+    FilterJobs --> ChatReady[Chat Ready]
+    ChatReady --> TypeMessage[Type Message]
+    TypeMessage --> SendMessage[Send Message to API]
+    SendMessage --> RateLimit{Rate Limit OK?}
+    RateLimit -->|No| RateLimitError[Show Rate Limit Error]
+    RateLimitError --> ChatReady
+    RateLimit -->|Yes| BuildContext[Build Chat Context:<br/>- User Profile<br/>- Job Listings<br/>- Application History]
+    BuildContext --> CallAI[Call Groq AI API]
+    CallAI --> ProcessResponse[Process AI Response:<br/>- Remove Emojis<br/>- Limit to 100 words<br/>- Format as Bullet Points]
+    ProcessResponse --> DisplayResponse[Display AI Response]
+    DisplayResponse --> ChatReady
+    
+    %% Assistive Tools Flow
+    MainMenu -->|View Tools| ToolsPage[Go to Tools Page]
+    ToolsPage --> LoadUserDisabilities[Load User Disabilities]
+    LoadUserDisabilities --> RecommendTools[Recommend Tools Based on Disabilities]
+    RecommendTools --> ApplyToolFilters[Apply Filters:<br/>- Disability<br/>- Category<br/>- Platform<br/>- Cost]
+    ApplyToolFilters --> DisplayTools[Display Assistive Tools]
+    DisplayTools --> ViewToolDetails{View Tool Details?}
+    ViewToolDetails -->|Yes| ToolDetails[View Tool Information:<br/>- Description<br/>- Features<br/>- Platform<br/>- Cost<br/>- Website Link]
+    ViewToolDetails -->|No| DisplayTools
+    ToolDetails --> VisitWebsite{Visit Tool Website?}
+    VisitWebsite -->|Yes| OpenWebsite[Open Tool Website]
+    VisitWebsite -->|No| DisplayTools
+    OpenWebsite --> DisplayTools
+    
+    %% Accessibility Settings Flow
+    MainMenu -->|Accessibility| AccessSettings[Open Accessibility Controls]
+    AccessSettings --> AdjustFontSize[Adjust Font Size: 12px-24px]
+    AdjustFontSize --> ToggleHighContrast{Toggle High Contrast?}
+    ToggleHighContrast -->|Yes| EnableHighContrast[Enable High Contrast Mode]
+    ToggleHighContrast -->|No| ToggleReducedMotion
+    EnableHighContrast --> ToggleReducedMotion{Toggle Reduced Motion?}
+    ToggleReducedMotion -->|Yes| EnableReducedMotion[Enable Reduced Motion]
+    ToggleReducedMotion -->|No| SaveAccessSettings
+    EnableReducedMotion --> SaveAccessSettings[Save Settings to localStorage]
+    SaveAccessSettings --> ApplySettings[Apply Settings to UI]
+    ApplySettings --> AccessSettings
+    
+    %% Logout Flow
+    MainMenu -->|Logout| LogoutConfirm{Confirm Logout?}
+    LogoutConfirm -->|No| HomePage
+    LogoutConfirm -->|Yes| ClearSession[Clear User Session]
+    ClearSession --> LoginPage
+    
+    %% Registration Flow (if not logged in)
+    LoginPage --> RegisterLink[Click Register Link]
+    RegisterLink --> RegisterPage[Go to Registration Page]
+    RegisterPage --> FillRegistration[Fill Registration Form:<br/>- Name<br/>- Email<br/>- Password<br/>- Phone<br/>- Age<br/>- Gender<br/>- Location]
+    FillRegistration --> SelectDisabilities[Select Disabilities]
+    SelectDisabilities --> SelectSkills[Select Skills]
+    SelectSkills --> UploadProfilePhoto{Upload Photo?}
+    UploadProfilePhoto -->|Yes| UploadRegPhoto[Upload Profile Photo]
+    UploadProfilePhoto -->|No| ValidateRegistration
+    UploadRegPhoto --> ValidateRegistration{Validate Input?}
+    ValidateRegistration -->|No| RegError[Show Validation Error]
+    RegError --> FillRegistration
+    ValidateRegistration -->|Yes| CheckEmail{Email Exists?}
+    CheckEmail -->|Yes| EmailError[Show Email Exists Error]
+    EmailError --> FillRegistration
+    CheckEmail -->|No| HashPassword[Hash Password]
+    HashPassword --> CreateUser[Create User Account]
+    CreateUser --> LinkDisabilities[Link Disabilities]
+    LinkDisabilities --> LinkSkills[Link Skills]
+    LinkSkills --> SavePhoto[Save Profile Photo]
+    SavePhoto --> RegSuccess[Show Registration Success]
+    RegSuccess --> LoginPage
+    
+    style Start fill:#90EE90
+    style HomePage fill:#87CEEB
+    style AppSuccess fill:#90EE90
+    style RegSuccess fill:#90EE90
+    style LoginError fill:#FFB6C1
+    style CVError fill:#FFB6C1
+    style RateLimitError fill:#FFB6C1
+    style RegError fill:#FFB6C1
+    style EmailError fill:#FFB6C1
+

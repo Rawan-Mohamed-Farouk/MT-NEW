@@ -1,0 +1,48 @@
+%% Job Seeker Use Cases
+graph TB
+    User[Job Seeker]
+    
+    User --> UC1[Register Account]
+    User --> UC2[Login]
+    User --> UC3[View Profile]
+    User --> UC4[Edit Profile]
+    User --> UC5[Search Jobs]
+    User --> UC6[Filter Jobs]
+    User --> UC7[Apply for Job]
+    User --> UC8[Upload CV]
+    User --> UC9[Chat with AI Assistant]
+    User --> UC10[View Assistive Tools]
+    User --> UC11[View Application History]
+    User --> UC12[Adjust Accessibility Settings]
+    
+    UC7 -.includes.-> UC8
+    UC5 -.includes.-> UC6
+
+%% Administrator Use Cases
+graph TB
+    Admin[Administrator]
+    
+    Admin --> UC13[Manage Users]
+    Admin --> UC14[Manage Jobs]
+    Admin --> UC15[Manage Companies]
+    Admin --> UC16[Review Applications]
+    Admin --> UC17[Approve/Reject Applications]
+    Admin --> UC18[Manage Disabilities]
+    Admin --> UC19[View Dashboard]
+    Admin --> UC20[View Security Logs]
+    Admin --> UC21[Manage Tools]
+
+%% System Use Cases
+graph TB
+    System[EmpowerWork System]
+    
+    System --> UC22[Match Jobs to User Profile]
+    System --> UC23[Extract CV Information]
+    System --> UC24[Generate AI Responses]
+    System --> UC25[Validate User Input]
+    System --> UC26[Store Files]
+    System --> UC27[Log Security Events]
+    System --> UC28[Hash Passwords]
+    System --> UC29[Calculate Relevance Scores]
+    System --> UC30[Filter Jobs for Chatbot]
+

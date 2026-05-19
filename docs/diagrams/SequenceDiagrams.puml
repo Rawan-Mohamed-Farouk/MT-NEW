@@ -1,0 +1,66 @@
+@startuml JobApplicationSequence
+actor User
+participant Frontend
+participant "Backend API" as API
+participant Database
+participant "PDF Extractor" as PDF
+participant "File System" as FS
+
+User -> Frontend: Click "Apply" button
+Frontend -> User: Show application modal
+User -> Frontend: Upload CV, write cover letter
+Frontend -> API: POST /applications/apply
+API -> FS: Save CV file
+API -> PDF: Extract CV information
+PDF -> API: Return extracted data
+API -> Database: Insert job_application
+Database -> API: Return application ID
+API -> Frontend: Return success response
+Frontend -> User: Show success message
+@enduml
+
+@startuml ChatbotSequence
+actor User
+participant Frontend
+participant "Backend API" as API
+participant Database
+participant "Search Intelligence" as SI
+participant "RAG Chat" as RAG
+participant "Groq API" as Groq
+
+User -> Frontend: Type message in chat
+Frontend -> API: POST /chat/?user_id=X&message=Y
+API -> Database: Load user profile (eager load)
+Database -> API: Return user data
+API -> Database: Load jobs (eager load)
+Database -> API: Return jobs
+API -> SI: Filter relevant jobs
+SI -> API: Return filtered jobs
+API -> RAG: Build context and call Groq
+RAG -> Groq: Send prompt with context
+Groq -> RAG: Return AI response
+RAG -> API: Return formatted response
+API -> Frontend: Return response
+Frontend -> User: Display response
+@enduml
+
+@startuml LoginSequence
+actor User
+participant Frontend
+participant "Backend API" as API
+participant Database
+
+User -> Frontend: Enter email and password
+Frontend -> API: POST /users/login
+API -> Database: Query user by email
+Database -> API: Return user data
+API -> API: Verify password hash
+alt Valid credentials
+  API -> Frontend: Return user object
+  Frontend -> User: Redirect to dashboard
+else Invalid credentials
+  API -> Frontend: Return error
+  Frontend -> User: Show error message
+end
+@enduml
+

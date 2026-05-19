@@ -1,0 +1,64 @@
+%% Simplified User Activity Diagram - Main User Workflows
+flowchart TD
+    Start([User Starts]) --> Login{Logged In?}
+    
+    Login -->|No| Register[Register Account]
+    Register --> LoginPage[Login]
+    Login -->|Yes| Dashboard[Home Dashboard]
+    
+    Dashboard --> Action{Choose Action}
+    
+    %% Job Search & Application
+    Action -->|Search Jobs| Search[Search Jobs with Filters]
+    Search --> ViewJobs[View Job Listings]
+    ViewJobs --> SelectJob[Select Job]
+    SelectJob --> Apply{Apply Method?}
+    Apply -->|CV Upload| UploadCV[Upload CV & Cover Letter]
+    Apply -->|Manual Entry| ManualEntry[Fill Manual Form]
+    UploadCV --> SubmitApp[Submit Application]
+    ManualEntry --> SubmitApp
+    SubmitApp --> AppSubmitted[Application Submitted]
+    AppSubmitted --> Dashboard
+    
+    %% Profile Management
+    Action -->|View Profile| Profile[View Profile]
+    Profile --> ViewApps[View Application History]
+    ViewApps --> CheckStatus[Check Application Status]
+    CheckStatus --> EditProfile{Edit Profile?}
+    EditProfile -->|Yes| UpdateProfile[Update Profile Info]
+    EditProfile -->|No| Dashboard
+    UpdateProfile --> SaveProfile[Save Changes]
+    SaveProfile --> Profile
+    
+    %% Chatbot
+    Action -->|Chat with AI| Chat[Open Chat Interface]
+    Chat --> TypeMsg[Type Message]
+    TypeMsg --> SendMsg[Send Message]
+    SendMsg --> GetResponse[Get AI Response]
+    GetResponse --> DisplayResponse[Display Response]
+    DisplayResponse --> TypeMsg
+    
+    %% Tools
+    Action -->|View Tools| Tools[Browse Assistive Tools]
+    Tools --> FilterTools[Filter Tools]
+    FilterTools --> ViewToolDetails[View Tool Details]
+    ViewToolDetails --> Dashboard
+    
+    %% Accessibility
+    Action -->|Accessibility| Access[Open Settings]
+    Access --> AdjustFont[Adjust Font Size]
+    AdjustFont --> ToggleContrast[Toggle High Contrast]
+    ToggleContrast --> ToggleMotion[Toggle Reduced Motion]
+    ToggleMotion --> SaveSettings[Save Settings]
+    SaveSettings --> Dashboard
+    
+    %% Logout
+    Action -->|Logout| Logout[Logout]
+    Logout --> LoginPage
+    
+    style Start fill:#90EE90
+    style Dashboard fill:#87CEEB
+    style AppSubmitted fill:#90EE90
+    style SaveProfile fill:#90EE90
+    style SaveSettings fill:#90EE90
+

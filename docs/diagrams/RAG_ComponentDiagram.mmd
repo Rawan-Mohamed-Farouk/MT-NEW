@@ -1,0 +1,87 @@
+%% RAG System Component Diagram
+graph TB
+    subgraph "Frontend Layer"
+        UI[Chat Interface]
+    end
+    
+    subgraph "API Layer"
+        ChatRoute[Chat Route Handler<br/>/chat endpoint]
+        Security[Security Module<br/>Rate Limiting<br/>Input Validation]
+    end
+    
+    subgraph "Data Retrieval Layer"
+        UserRetriever[User Profile Retriever]
+        JobRetriever[Job Database Retriever]
+        AppRetriever[Application History Retriever]
+        DB[(MySQL Database)]
+    end
+    
+    subgraph "Intelligence Layer"
+        JobFilter[Job Filtering Engine<br/>filter_jobs_for_chat]
+        KeywordExtractor[Keyword Extractor]
+        RelevanceScorer[Relevance Scorer]
+        JobFormatter[Job Formatter<br/>format_jobs_for_context]
+    end
+    
+    subgraph "Context Building Layer"
+        ContextBuilder[Context Builder]
+        UserContext[User Context Builder]
+        JobContext[Job Context Builder]
+        PromptBuilder[Prompt Builder]
+    end
+    
+    subgraph "Generation Layer"
+        RAGChat[RAG Chat Module<br/>chat_with_rag]
+        GroqAPI[Groq API<br/>LLM Service]
+    end
+    
+    subgraph "Post-Processing Layer"
+        EmojiRemover[Emoji Remover]
+        WordLimiter[Word Limiter<br/>100 words max]
+        FormatValidator[Format Validator]
+    end
+    
+    UI -->|User Message| ChatRoute
+    ChatRoute --> Security
+    Security -->|Valid Request| UserRetriever
+    Security -->|Invalid Request| UI
+    
+    UserRetriever --> DB
+    UserRetriever -->|User Profile| ContextBuilder
+    UserRetriever --> AppRetriever
+    AppRetriever --> DB
+    AppRetriever -->|Application History| ContextBuilder
+    
+    ChatRoute --> JobRetriever
+    JobRetriever --> DB
+    JobRetriever -->|50 Jobs| JobFilter
+    
+    JobFilter --> KeywordExtractor
+    KeywordExtractor --> RelevanceScorer
+    RelevanceScorer -->|Top 5 Jobs| JobFormatter
+    JobFormatter -->|Formatted Jobs| ContextBuilder
+    
+    ContextBuilder --> UserContext
+    ContextBuilder --> JobContext
+    UserContext --> PromptBuilder
+    JobContext --> PromptBuilder
+    PromptBuilder -->|Full Prompt| RAGChat
+    
+    RAGChat -->|API Call| GroqAPI
+    GroqAPI -->|AI Response| RAGChat
+    RAGChat -->|Raw Response| EmojiRemover
+    
+    EmojiRemover --> WordLimiter
+    WordLimiter --> FormatValidator
+    FormatValidator -->|Final Response| ChatRoute
+    ChatRoute -->|Response| UI
+    
+    style UI fill:#E6F3FF
+    style ChatRoute fill:#FFE6CC
+    style Security fill:#FFCCCC
+    style DB fill:#CCFFCC
+    style JobFilter fill:#FFFFCC
+    style RAGChat fill:#E6CCFF
+    style GroqAPI fill:#CCE6FF
+    style FormatValidator fill:#FFCCE6
+
