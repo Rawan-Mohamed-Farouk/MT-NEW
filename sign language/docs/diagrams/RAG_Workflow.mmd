@@ -1,0 +1,97 @@
+%% RAG System Workflow Diagram
+flowchart TD
+    Start([User Sends Message]) --> Validate[Validate Input & Rate Limit]
+    
+    Validate -->|Invalid| Error[Return Error]
+    Validate -->|Valid| CheckUser{User ID Provided?}
+    
+    CheckUser -->|Yes| LoadUser[Load User Profile with Eager Loading]
+    CheckUser -->|No| LoadJobs
+    
+    LoadUser --> LoadUserDisabilities[Load User Disabilities]
+    LoadUserDisabilities --> LoadUserSkills[Load User Skills]
+    LoadUserSkills --> LoadApplications[Load Application History<br/>Last 10 Applications]
+    LoadApplications --> BuildUserProfile[Build User Profile Dictionary:<br/>- Disabilities<br/>- Skills<br/>- Location<br/>- Preferred Job Type<br/>- Applied Job IDs]
+    BuildUserProfile --> LoadJobs
+    
+    LoadJobs[Load Jobs from Database<br/>Limit 50 with Eager Loading] --> LoadJobRelations[Load Job Relationships:<br/>- Company<br/>- Location<br/>- Requirements<br/>- Disability Support]
+    LoadJobRelations --> TransformJobs[Transform to Job Data List]
+    
+    TransformJobs --> FilterJobs[Intelligent Job Filtering]
+    
+    FilterJobs --> ExtractKeywords[Extract Keywords from Message]
+    ExtractKeywords --> CalculateRelevance[Calculate Relevance Score for Each Job]
+    
+    CalculateRelevance --> ScoreDisability{Disability Match?}
+    ScoreDisability -->|Yes| AddDisabilityScore[+10 points per match]
+    ScoreDisability -->|No| CheckTitle
+    AddDisabilityScore --> CheckTitle
+    
+    CheckTitle{Title Match?}
+    CheckTitle -->|Yes| AddTitleScore[+2 points]
+    CheckTitle -->|No| CheckDescription
+    AddTitleScore --> CheckDescription
+    
+    CheckDescription{Description Match?}
+    CheckDescription -->|Yes| AddDescScore[+1 point]
+    CheckDescription -->|No| CheckSkills
+    AddDescScore --> CheckSkills
+    
+    CheckSkills{Skill Match?}
+    CheckSkills -->|Yes| AddSkillScore[+2 points]
+    CheckSkills -->|No| CheckApplied
+    AddSkillScore --> CheckApplied
+    
+    CheckApplied{Already Applied?}
+    CheckApplied -->|Yes| ExcludeJob[Exclude Job<br/>Unless Asked About]
+    CheckApplied -->|No| IncludeJob[Include Job]
+    ExcludeJob --> SortJobs
+    IncludeJob --> SortJobs
+    
+    SortJobs[Sort Jobs by Relevance Score<br/>Highest First] --> Top5[Select Top 5 Jobs]
+    
+    Top5 --> FormatJobs[Format Jobs for Context]
+    
+    FormatJobs --> SortByPriority[Sort by Priority:<br/>1. Disability Matches<br/>2. Applied Status]
+    SortByPriority --> MarkMatches[Mark Jobs:<br/>- PERFECT MATCH<br/>- Already Applied]
+    MarkMatches --> FormatJobInfo[Format Job Information:<br/>- ID, Title, Company<br/>- Location, Type<br/>- Requirements<br/>- Disability Support]
+    FormatJobInfo --> BuildContext
+    
+    BuildContext[Build Context String] --> BuildUserContext[Build User Context:<br/>- Disabilities<br/>- Skills<br/>- Location<br/>- Preferred Job Type<br/>- Applied Jobs List]
+    BuildUserContext --> BuildJobContext[Build Job Context:<br/>- Top 5 Formatted Jobs]
+    BuildJobContext --> BuildPrompt
+    
+    BuildPrompt[Construct Prompt] --> AddSystemPrompt[Add System Prompt:<br/>- Instructions<br/>- Format Requirements<br/>- Response Guidelines]
+    AddSystemPrompt --> AddUserContext[Add User Context]
+    AddUserContext --> AddJobContext[Add Job Context]
+    AddJobContext --> AddUserMessage[Add User Message]
+    
+    AddUserMessage --> CallGroq[Call Groq API]
+    
+    CallGroq --> GroqParams[API Parameters:<br/>- Model: openai/gpt-oss-120b<br/>- Temperature: 0.7<br/>- Max Tokens: 500<br/>- Top P: 1]
+    GroqParams --> GroqProcess[Groq Processes Request]
+    GroqProcess --> GroqResponse[Receive AI Response]
+    
+    GroqResponse --> PostProcess[Post-Process Response]
+    
+    PostProcess --> RemoveEmojis[Remove Emojis<br/>Using Regex Pattern]
+    RemoveEmojis --> CheckWordCount{Word Count > 100?}
+    CheckWordCount -->|Yes| LimitWords[Truncate to 100 Words<br/>Add ...]
+    CheckWordCount -->|No| ValidateFormat
+    LimitWords --> ValidateFormat
+    
+    ValidateFormat[Validate Format:<br/>- Bullet Points<br/>- No Paragraphs<br/>- Concise] --> ReturnResponse[Return Response to Frontend]
+    
+    ReturnResponse --> DisplayChat[Display in Chat Interface]
+    DisplayChat --> End([User Sees Response])
+    
+    Error --> End
+    
+    style Start fill:#90EE90
+    style End fill:#90EE90
+    style CallGroq fill:#87CEEB
+    style GroqResponse fill:#87CEEB
+    style PostProcess fill:#FFD700
+    style ReturnResponse fill:#90EE90
+    style Error fill:#FFB6C1
+

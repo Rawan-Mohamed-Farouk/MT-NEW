@@ -1,0 +1,61 @@
+%% Job Application State Diagram
+stateDiagram-v2
+    [*] --> Pending: User submits application
+    
+    state Pending {
+        [*] --> Waiting: Application created
+        Waiting: Status = 'pending'
+    }
+    
+    state "Under Review" as Review {
+        [*] --> Examining: Admin opens application
+        Examining: Status = 'reviewing'
+    }
+    
+    state Approved {
+        [*] --> Completed: Application accepted
+        Completed: Status = 'approved'
+    }
+    
+    state Rejected {
+        [*] --> Declined: Application declined
+        Declined: Status = 'rejected'
+    }
+    
+    Pending --> Review: Admin starts review
+    Review --> Approved: Admin approves
+    Review --> Rejected: Admin rejects
+    Approved --> [*]
+    Rejected --> [*]
+
+%% User Session State Diagram
+stateDiagram-v2
+    [*] --> LoggedOut
+    
+    state LoggedOut {
+        [*] --> Idle
+        Idle: No active session
+    }
+    
+    state Authenticating {
+        [*] --> Validating
+        Validating: Checking credentials
+    }
+    
+    state "Logged In (User)" as UserLoggedIn {
+        [*] --> Active
+        Active: User session active
+    }
+    
+    state "Logged In (Admin)" as AdminLoggedIn {
+        [*] --> Active
+        Active: Admin session active
+    }
+    
+    LoggedOut --> Authenticating: User/Admin logs in
+    Authenticating --> UserLoggedIn: Valid user credentials
+    Authenticating --> AdminLoggedIn: Valid admin credentials
+    Authenticating --> LoggedOut: Invalid credentials
+    UserLoggedIn --> LoggedOut: User logs out
+    AdminLoggedIn --> LoggedOut: Admin logs out
+

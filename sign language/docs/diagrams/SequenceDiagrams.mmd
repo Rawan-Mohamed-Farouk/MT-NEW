@@ -1,0 +1,122 @@
+%% Job Application Sequence (with CV Upload)
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant API as Backend API
+    participant FS as File System
+    participant PDF as PDF Extractor
+    participant DB as Database
+    
+    User->>Frontend: Click "Apply" button
+    Frontend->>User: Show application modal
+    User->>Frontend: Upload CV (PDF), write cover letter
+    Frontend->>API: POST /applications/apply (FormData)
+    API->>API: Rate limit check
+    API->>API: Input validation
+    API->>FS: Save CV file (uploads/cvs/)
+    API->>PDF: Extract CV information (PyPDF2)
+    PDF->>API: Return extracted data
+    API->>API: Serialize to JSON
+    API->>DB: Insert job_application
+    DB->>API: Return application ID
+    API->>Frontend: Return success response
+    Frontend->>User: Show success message
+
+%% Job Application Sequence (Manual Entry)
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant API as Backend API
+    participant DB as Database
+    
+    User->>Frontend: Click "Apply", select "Manual Entry"
+    Frontend->>User: Show manual entry form
+    User->>Frontend: Fill/confirm form fields
+    Frontend->>API: POST /applications/apply_manual
+    API->>API: Rate limit check
+    API->>API: Input validation
+    API->>API: Build extracted_info dict
+    API->>API: Serialize to JSON
+    API->>DB: Insert job_application
+    DB->>API: Return application ID
+    API->>Frontend: Return application object
+    Frontend->>User: Show success message
+
+%% Chatbot Interaction Sequence
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant API as Backend API
+    participant DB as Database
+    participant SI as Search Intelligence
+    participant RAG as RAG Chat
+    participant Groq as Groq API
+    
+    User->>Frontend: Type message in chat
+    Frontend->>API: POST /chat/?user_id=X&message=Y
+    API->>API: Rate limit check
+    API->>DB: Load user profile (eager load)
+    DB->>API: Return user data
+    API->>DB: Load user's applications (last 10)
+    DB->>API: Return applications
+    API->>DB: Load all jobs (limit 50, eager load)
+    DB->>API: Return jobs
+    API->>SI: Filter jobs based on message/profile
+    SI->>API: Return filtered relevant jobs
+    API->>RAG: Build context
+    API->>RAG: Format jobs for context
+    RAG->>Groq: Send prompt with context
+    Groq->>RAG: Return AI response
+    RAG->>API: Remove emojis, limit to 100 words
+    API->>Frontend: Return formatted response
+    Frontend->>User: Display response
+
+%% User Registration Sequence
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant API as Backend API
+    participant Security
+    participant DB as Database
+    participant FS as File System
+    
+    User->>Frontend: Fill registration form
+    Frontend->>API: POST /users/add_user (FormData)
+    API->>Security: Rate limit check
+    API->>Security: Input validation
+    API->>DB: Check if email exists
+    DB->>API: Return result
+    API->>Security: Hash password (Werkzeug)
+    API->>DB: Insert user record
+    API->>DB: Insert user_disabilities
+    API->>DB: Insert user_skills
+    API->>FS: Save profile photo
+    API->>Frontend: Return user object
+    Frontend->>User: Show success, redirect to login
+
+%% Admin Application Review Sequence
+sequenceDiagram
+    actor Admin
+    participant Frontend
+    participant API as Backend API
+    participant DB as Database
+    
+    Admin->>Frontend: View pending applications
+    Frontend->>API: GET /applications/pending
+    API->>DB: Query pending applications (eager load)
+    DB->>API: Return applications
+    API->>Frontend: Return application list
+    Frontend->>Admin: Display applications
+    Admin->>Frontend: Click "Review"
+    Frontend->>API: GET /applications/{id}
+    API->>DB: Load application details
+    DB->>API: Return application
+    API->>Frontend: Return application details
+    Frontend->>Admin: Show review modal
+    Admin->>Frontend: Approve/Reject with notes
+    Frontend->>API: PUT /applications/{id}/review
+    API->>DB: Update application status
+    DB->>API: Return updated application
+    API->>Frontend: Return success
+    Frontend->>Admin: Show updated status
+
