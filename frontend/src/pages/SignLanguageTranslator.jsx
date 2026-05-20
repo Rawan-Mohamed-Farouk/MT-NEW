@@ -16,7 +16,7 @@ const SignLanguageTranslator = () => {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
           <div className="aspect-w-16 aspect-h-9" style={{ minHeight: '800px' }}>
             <iframe
-              src="http://localhost:8501/?embed=true"
+              src="https://mt-new-bwdmgcm6wqyfjpubktucwv.streamlit.app/?embed=true"
               title="Sign Language Model"
               width="100%"
               height="100%"
