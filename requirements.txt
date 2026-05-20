@@ -4,7 +4,7 @@ sqlalchemy
 pymysql
 python-dotenv
 openai
-chromadb
+chromadb-client
 groq
 werkzeug
 python-multipart
