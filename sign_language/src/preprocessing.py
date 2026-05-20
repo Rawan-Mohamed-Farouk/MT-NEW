@@ -1,5 +1,8 @@
 import cv2
 import mediapipe as mp
+import mediapipe.python.solutions.hands as mp_hands
+import mediapipe.python.solutions.drawing_utils as mp_drawing
+import mediapipe.python.solutions.drawing_styles as mp_drawing_styles
 import numpy as np
 import logging
 from src.config import settings
@@ -11,7 +14,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # force CPU
 class HandPreprocessor:
     def __init__(self):
         logger.info("Initializing MediaPipe Hands...")
-        self.mp_hands = mp.solutions.hands
+        self.mp_hands = mp_hands
         self.hands = self.mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=2,
@@ -20,8 +23,8 @@ class HandPreprocessor:
             model_complexity=1
 )
 
-        self.mp_drawing = mp.solutions.drawing_utils
-        self.mp_drawing_styles = mp.solutions.drawing_styles
+        self.mp_drawing = mp_drawing
+        self.mp_drawing_styles = mp_drawing_styles
         logger.info("MediaPipe Hands initialized successfully")
 
     def process_frame(self, frame):
