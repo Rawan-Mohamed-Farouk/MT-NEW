@@ -1,0 +1,13 @@
+pkg-config
+libasound2-dev
+libavcodec-dev
+libavdevice-dev
+libavfilter-dev
+libavformat-dev
+libavutil-dev
+libswresample-dev
+libswscale-dev
+libice6
+libsm6
+libxext6
+libgl1-mesa-glx
