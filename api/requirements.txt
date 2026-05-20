@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+python-dotenv
+openai
+chromadb-client
+groq
+werkzeug
+python-multipart
+PyPDF2
+cryptography
+reportlab
+python-multipart
+
+opencv-python-headless
