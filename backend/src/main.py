@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from backend.src.db.database import engine, Base
-from backend.src.routes import jobs, users, chat, applications, disabilities, tools, security, companies, cv, action_recognition
+from backend.src.routes import jobs, users, chat, applications, disabilities, tools, security, companies, cv, action_recognition, sign_language
 from sqlalchemy.exc import OperationalError
 import os
 
@@ -39,6 +39,7 @@ app.include_router(security.router)
 app.include_router(companies.router)
 app.include_router(cv.router)
 app.include_router(action_recognition.router)
+app.include_router(sign_language.router)
 
 # Serve static files (profile photos and CVs)
 if os.path.exists("uploads"):
