@@ -129,7 +129,7 @@ const SignLanguageTranslator = () => {
       setPrediction({ gesture, confidence });
       setNoHandCount(0);
 
-      if (confidence > 0.60) {
+      if (confidence > 0.50) {
         if (gestureStreak.current.gesture === gesture) {
           gestureStreak.current.count += 1;
         } else {
@@ -141,7 +141,7 @@ const SignLanguageTranslator = () => {
           if (gesture !== lastConfirmedGesture) {
             setLastConfirmedGesture(gesture);
             speakGesture(gesture);
-            if (gesture === 'stop') {
+            if (gesture === 'stop' || gesture === 'space') {
               setTranslationHistory(prev => [...prev, ' ']);
             } else {
               setTranslationHistory(prev => [...prev, gesture]);
@@ -393,7 +393,7 @@ const SignLanguageTranslator = () => {
               </h1>
             </div>
             <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
-              Interactive, AI-powered real-time American Sign Language (ASL) gesture recognition system.
+              Real-time ASL alphabet recognition (A–Z) with improved landmark-normalized machine learning.
             </p>
           </div>
 
@@ -646,7 +646,7 @@ const SignLanguageTranslator = () => {
             </div>
             <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-400">
               <Info className="h-3.5 w-3.5 shrink-0 text-blue-500" />
-              <span>Tip: Hold a gesture for 3 consecutive frames (approx. 0.5s) to confirm and append it to the translator transcript.</span>
+              <span>Tip: Spell words letter by letter. Hold each ASL letter steady for ~0.5s to add it to the transcript. Add custom signs under sign_language/data/raw/ and retrain.</span>
             </div>
           </div>
         </div>

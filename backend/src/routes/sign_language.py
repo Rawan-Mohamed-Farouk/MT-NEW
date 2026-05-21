@@ -1,9 +1,12 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 import os
+import json
 import joblib
 import numpy as np
 import logging
+
+from backend.src.utils.landmark_features import normalize_landmarks
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,15 @@ MODEL_PATH = os.path.join(BASE_DIR, "backend", "models", "hand_gesture_classifie
 if not os.path.exists(MODEL_PATH):
     # Fallback to sign_language/artifacts/hand_gesture_classifier.joblib
     MODEL_PATH = os.path.join(BASE_DIR, "sign_language", "artifacts", "hand_gesture_classifier.joblib")
+
+MODEL_USES_NORMALIZED = False
+_meta_path = MODEL_PATH.replace(".joblib", ".meta.json")
+if os.path.exists(_meta_path):
+    try:
+        with open(_meta_path, encoding="utf-8") as f:
+            MODEL_USES_NORMALIZED = bool(json.load(f).get("normalized_landmarks", False))
+    except Exception:
+        pass
 
 model = None
 if os.path.exists(MODEL_PATH):
@@ -55,10 +67,11 @@ def predict_gesture(data: LandmarkInput):
         )
     
     try:
-        # Convert landmarks to a 1x63 numpy array
-        arr = np.array(landmarks).reshape(1, -1)
-        
-        # Make prediction
+        flat = np.array(landmarks, dtype=np.float64)
+        if MODEL_USES_NORMALIZED:
+            flat = normalize_landmarks(flat)
+        arr = flat.reshape(1, -1)
+
         prediction = model.predict(arr)
         probabilities = model.predict_proba(arr)[0]
         confidence = float(np.max(probabilities))
