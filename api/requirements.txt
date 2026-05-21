@@ -16,4 +16,4 @@ python-multipart
 opencv-python-headless
 joblib
 numpy
-scikit-learn
+scikit-learn==1.3.2
