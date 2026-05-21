@@ -181,15 +181,16 @@ const AITools = () => {
     },
     {
       id: 18,
-      name: 'Sign Language Translator (New Integration)',
+      name: 'Sign Language Translator',
       category: 'communication',
-      description: 'Newly deployed real-time hand gesture recognition system. Leverages client-side GPU acceleration and real-time backend API for instant sign translation with text-to-speech output.',
-      features: ['Real-time translation', 'GPU hand tracking', 'Audio voice synthesis', 'Interactive transcript tape'],
-      platform: 'Web (Native API)',
+      description: 'Built-in ASL gesture recognition. Start your camera and translation runs automatically—hand tracking, live predictions, and a spoken transcript tape with no extra steps.',
+      features: ['Auto-start on camera', 'Real-time gesture prediction', 'Confidence meter', 'Text-to-speech & transcript'],
+      platform: 'Web (Built-in)',
       cost: 'Free',
       website: '/sign-language',
       icon: '🤟',
       disabilitySupport: ['Deaf', 'Hard of Hearing', 'Speech Impairment'],
+      isBuiltIn: true,
     },
     
     // Interview Preparation Tools
@@ -279,6 +280,7 @@ const AITools = () => {
   const handleToolClick = (tool) => {
     if (tool.website.startsWith('/')) {
       navigate(tool.website);
+      toast.success(`Opening ${tool.name}`);
     } else {
       window.open(tool.website, '_blank', 'noopener,noreferrer');
       toast.success(`Opening ${tool.name}`);
@@ -409,7 +411,7 @@ const AITools = () => {
                   onClick={() => handleToolClick(tool)}
                   className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
                 >
-                  <span>Visit Website</span>
+                  <span>{tool.isBuiltIn ? 'Open Translator' : 'Visit Website'}</span>
                   <ExternalLink className="h-4 w-4" />
                 </button>
               </div>

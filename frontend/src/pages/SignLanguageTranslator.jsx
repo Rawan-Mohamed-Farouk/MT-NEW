@@ -28,6 +28,8 @@ const SignLanguageTranslator = () => {
   // Real-time Prediction state
   const [prediction, setPrediction] = useState({ gesture: null, confidence: 0 });
   const [noHandCount, setNoHandCount] = useState(0);
+  const [backendErrorMsg, setBackendErrorMsg] = useState(null); // Track backend errors
+  const errorAlertedRef = useRef(false); // Prevent spamming toast
   
   // Translation History & Settings
   const [translationHistory, setTranslationHistory] = useState([]);
@@ -41,6 +43,7 @@ const SignLanguageTranslator = () => {
   const activeStreamRef = useRef(null);
   const handsInstanceRef = useRef(null);
   const cameraInstanceRef = useRef(null);
+  const trackingInitializedRef = useRef(false);
   
   // Performance and throttling references
   const lastPredictionTime = useRef(0);
@@ -116,6 +119,12 @@ const SignLanguageTranslator = () => {
         landmarks: landmarksArray
       });
 
+      // Clear any previous error
+      if (backendErrorMsg) {
+        setBackendErrorMsg(null);
+        errorAlertedRef.current = false;
+      }
+
       const { gesture, confidence } = response.data;
       setPrediction({ gesture, confidence });
       setNoHandCount(0);
@@ -143,6 +152,15 @@ const SignLanguageTranslator = () => {
       }
     } catch (err) {
       console.error("Backend prediction error:", err);
+      // Set error message so UI can show it
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to reach server.";
+      setBackendErrorMsg(errorMessage);
+      
+      // Only toast once per camera session to avoid spamming
+      if (!errorAlertedRef.current) {
+        toast.error(`Prediction Failed: ${errorMessage}`);
+        errorAlertedRef.current = true;
+      }
     }
   };
 
@@ -185,11 +203,37 @@ const SignLanguageTranslator = () => {
     }
   };
 
-  // 7. Initialize and start tracking
+  // 7. Begin hand tracking + backend predictions once video is ready
+  const beginTranslation = async () => {
+    const video = videoRef.current;
+    if (!video) {
+      setIsModelLoading(false);
+      return;
+    }
+
+    try {
+      await video.play();
+    } catch (err) {
+      console.error("Video play failed:", err);
+    }
+
+    if (canvasRef.current) {
+      canvasRef.current.width = video.videoWidth || 640;
+      canvasRef.current.height = video.videoHeight || 480;
+    }
+
+    initializeMediaPipe();
+  };
+
+  // 8. Initialize and start camera (translation runs automatically after this)
   const startCamera = async () => {
-    if (!scriptsLoaded) return;
+    if (!scriptsLoaded || isCameraActive || isModelLoading) return;
 
     setIsModelLoading(true);
+    setBackendErrorMsg(null);
+    errorAlertedRef.current = false;
+    trackingInitializedRef.current = false;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480, facingMode: 'user' },
@@ -199,11 +243,19 @@ const SignLanguageTranslator = () => {
       activeStreamRef.current = stream;
       setCameraPermission('granted');
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play();
-          initializeMediaPipe();
+      const video = videoRef.current;
+      if (!video) {
+        setIsModelLoading(false);
+        return;
+      }
+
+      video.srcObject = stream;
+
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        await beginTranslation();
+      } else {
+        video.onloadedmetadata = () => {
+          beginTranslation();
         };
       }
     } catch (err) {
@@ -214,15 +266,19 @@ const SignLanguageTranslator = () => {
     }
   };
 
-  // 8. Setup MediaPipe Hands and Camera instances
+  // 9. Setup MediaPipe Hands and Camera instances
   const initializeMediaPipe = () => {
+    if (trackingInitializedRef.current) return;
+
     if (!window.Hands || !window.Camera) {
       console.error("MediaPipe classes not loaded on window.");
+      trackingInitializedRef.current = false;
       setIsModelLoading(false);
       return;
     }
 
     try {
+      trackingInitializedRef.current = true;
       const hands = new window.Hands({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
       });
@@ -252,21 +308,24 @@ const SignLanguageTranslator = () => {
           cameraInstanceRef.current = camera;
           setIsCameraActive(true);
           setIsModelLoading(false);
-          toast.success("Real-time sign language visualizer started!");
+          toast.success("Camera on — translation is running automatically.");
         })
         .catch(err => {
           console.error("MediaPipe camera start error:", err);
+          trackingInitializedRef.current = false;
           setIsModelLoading(false);
           toast.error("Failed to start hand tracker tracking loop.");
         });
     } catch (err) {
       console.error("Error initializing MediaPipe:", err);
+      trackingInitializedRef.current = false;
       setIsModelLoading(false);
     }
   };
 
-  // 9. Stop camera and release resources
+  // 10. Stop camera and release resources
   const stopCamera = () => {
+    trackingInitializedRef.current = false;
     if (cameraInstanceRef.current) {
       try { cameraInstanceRef.current.stop(); } catch (e) { console.error(e); }
       cameraInstanceRef.current = null;
@@ -280,6 +339,7 @@ const SignLanguageTranslator = () => {
       activeStreamRef.current = null;
     }
     if (videoRef.current) {
+      videoRef.current.onloadedmetadata = null;
       videoRef.current.srcObject = null;
     }
     setIsCameraActive(false);
@@ -360,6 +420,21 @@ const SignLanguageTranslator = () => {
           </div>
         )}
 
+        {backendErrorMsg && (
+          <div className="mb-6 flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-2xl text-amber-800 dark:text-amber-200 shadow-md">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-500" />
+            <div>
+              <h4 className="font-bold text-base">Prediction API Error</h4>
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                The hand gesture was tracked, but the backend API failed to respond: <strong className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">{backendErrorMsg}</strong>
+              </p>
+              <p className="mt-1 text-xs opacity-80">
+                If you are testing on Vercel, please ensure your VITE_API_URL is properly configured and the backend has deployed the latest endpoints.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Main Full-width Layout (Removed Dictionary sidebar) */}
         <div className="flex flex-col gap-6">
           
@@ -391,7 +466,7 @@ const SignLanguageTranslator = () => {
                 
                 <h3 className="text-2xl font-bold text-white mb-2">Camera is Powered Off</h3>
                 <p className="text-gray-400 max-w-md mb-8 text-base">
-                  Grant permission and start your camera feed. media processing occurs entirely client-side.
+                  Grant camera permission once — hand tracking and translation start automatically with your feed.
                 </p>
 
                 <button

@@ -182,7 +182,7 @@ const Tools = () => {
             </div>
             <h2 className="text-2xl md:text-3xl font-bold mb-2">Sign Language Translator</h2>
             <p className="text-white/80 max-w-xl">
-              Use our real-time hand gesture recognition system to translate sign language into text using your camera.
+              Start your camera and translation runs automatically—real-time ASL gestures become text and speech.
             </p>
           </div>
           <div className="z-10 mt-6 md:mt-0 flex-shrink-0">
