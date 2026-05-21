@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import api from '../api/api'; // Use central api instance
+import api, { API_BASE_URL } from '../api/api';
 import { 
   Camera, 
   CameraOff, 
@@ -154,7 +154,7 @@ const SignLanguageTranslator = () => {
       console.error("Backend prediction error:", err);
       // Set error message so UI can show it
       const errorMessage = err.response?.data?.detail || err.message || "Failed to reach server.";
-      setBackendErrorMsg(errorMessage);
+      setBackendErrorMsg(`${errorMessage} — API: ${API_BASE_URL}`);
       
       // Only toast once per camera session to avoid spamming
       if (!errorAlertedRef.current) {
@@ -429,7 +429,7 @@ const SignLanguageTranslator = () => {
                 The hand gesture was tracked, but the backend API failed to respond: <strong className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">{backendErrorMsg}</strong>
               </p>
               <p className="mt-1 text-xs opacity-80">
-                If you are testing on Vercel, please ensure your VITE_API_URL is properly configured and the backend has deployed the latest endpoints.
+                On Vercel, set <strong>VITE_API_URL</strong> to <code className="font-mono">https://mt-new-sigma.vercel.app</code> (no trailing slash) on the frontend project, then redeploy. The backend must be running at that URL.
               </p>
             </div>
           </div>

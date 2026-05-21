@@ -11,9 +11,22 @@ from reportlab.lib.utils import simpleSplit
 
 router = APIRouter(prefix="/cv", tags=["cv"])
 
-# Initialize Groq client
-# The model uses the GROQ_API_KEY from environment variables as set up in the system
-client = Groq()
+_groq_client = None
+
+
+def get_groq_client() -> Groq:
+    """Lazy-init Groq so the API can boot without GROQ_API_KEY (e.g. on Vercel)."""
+    global _groq_client
+    if _groq_client is None:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise HTTPException(
+                status_code=503,
+                detail="GROQ_API_KEY is not configured on the server.",
+            )
+        _groq_client = Groq(api_key=api_key)
+    return _groq_client
+
 
 @router.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
@@ -24,7 +37,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
         
         # Call Groq API for transcription
         # Using whisper-large-v3-turbo for fast transcription
-        transcription = client.audio.transcriptions.create(
+        transcription = get_groq_client().audio.transcriptions.create(
             file=(file.filename, file_bytes),
             model="whisper-large-v3-turbo",
         )
@@ -75,7 +88,7 @@ Skills:
 """
         
         # Call Groq AI
-        completion = client.chat.completions.create(
+        completion = get_groq_client().chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": cv_prompt}],
             temperature=0.4,

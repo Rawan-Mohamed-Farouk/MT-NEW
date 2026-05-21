@@ -14,3 +14,6 @@ reportlab
 python-multipart
 
 opencv-python-headless
+joblib
+numpy
+scikit-learn

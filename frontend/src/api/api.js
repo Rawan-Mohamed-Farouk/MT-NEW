@@ -1,7 +1,25 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const DEFAULT_LOCAL_API = 'http://localhost:8000';
+const PRODUCTION_API = 'https://mt-new-sigma.vercel.app';
+
+/** Resolve API base URL: env var, then Vercel production fallback, then localhost. */
+function resolveApiBaseUrl() {
+  const fromEnv = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
+  if (fromEnv && !fromEnv.includes('localhost') && !fromEnv.includes('127.0.0.1')) {
+    return fromEnv;
+  }
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.endsWith('.vercel.app') || host.includes('vercel.app')) {
+      return PRODUCTION_API;
+    }
+  }
+  return fromEnv || DEFAULT_LOCAL_API;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -279,5 +297,6 @@ export const cvAPI = {
   },
 };
 
+export { API_BASE_URL };
 export default api;
 
